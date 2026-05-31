@@ -10,7 +10,7 @@
     "@netlify/blobs": "10.7.8",
     "@tailwindcss/vite": "4.2.2",
     "@tanstack/react-router": "1.168.22",
-    "@tanstack/react-start": "1.167.41",
+    "@tanstack/react-start": "1.168.18",
     "@tanstack/react-store": "0.10.0",
     "@tanstack/router-plugin": "1.167.22",
     "@tanstack/store": "0.10.0",
