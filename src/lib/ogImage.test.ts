@@ -53,7 +53,7 @@ describe("OG image XML helpers", () => {
 
 describe("OG SVG rendering", () => {
   test("renders the generic scenario copy", () => {
-    const svg = renderOgSvg(new URL("https://npm.tax/api/og?ogv=2"));
+    const svg = renderOgSvg(new URL("https://npm.tax/api/og?ogv=4"));
     const genericOgScenario = getRiskScenario({
       probExp: Math.log10(2.5e-6),
       days: 365 * 2,
@@ -61,7 +61,7 @@ describe("OG SVG rendering", () => {
 
     assert.match(svg, /class="card generic-panel"/);
     assert.match(svg, /\.bg \{ fill: #020617; \}/);
-    assert.doesNotMatch(svg, /class="eyebrow">npm\.tax<\/text>/);
+    assert.match(svg, /font-family: "Noto Sans", sans-serif/);
     assert.match(svg, /npm supply-chain risk, with/);
     assert.match(svg, /cumulative npm supply-chain risk/);
     assert.match(svg, new RegExp(`>${formatProb(genericOgScenario.prob)}<`));
@@ -188,7 +188,7 @@ describe("OG SVG rendering", () => {
       defaultScenario.timePeriodDays,
       defaultChartMaxProbability,
     );
-    const svg = renderOgSvg(new URL("https://npm.tax/api/og?ogv=2"));
+    const svg = renderOgSvg(new URL("https://npm.tax/api/og?ogv=4"));
 
     assert.equal(extractPath(svg, "spark-risk"), expectedGenericPath);
     assert.notEqual(extractPath(svg, "spark-risk"), oldDefaultPath);

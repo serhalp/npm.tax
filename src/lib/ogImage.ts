@@ -21,6 +21,7 @@ const OG_CHART = {
 const OG_CHART_STEPS = 32;
 const GENERIC_OG_DAILY_PROBABILITY = 2.5e-6;
 const GENERIC_OG_TIME_PERIOD_DAYS = 365 * 2;
+const OG_FONT_FAMILY = '"Noto Sans", sans-serif';
 
 interface OgChartBounds {
   x: number;
@@ -203,12 +204,12 @@ export function renderOgSvg(url: URL): string {
     .generic-panel { fill: ${colors.genericPanel}; stroke: ${colors.genericStroke}; }
     .risk-panel { fill: ${colors.riskPanel}; stroke: ${colors.riskStroke}; }
     .pkg-panel { fill: ${colors.pkgPanel}; stroke: ${colors.pkgStroke}; }
-    .brand { fill: ${colors.brand}; font-family: Menlo, Consolas, monospace; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
-    .eyebrow { fill: ${colors.eyebrow}; font-family: Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; }
-    .title { fill: ${colors.title}; font-family: Arial, Helvetica, sans-serif; font-size: 50px; font-weight: 700; letter-spacing: -1.6px; }
-    .body { fill: ${colors.body}; font-family: Arial, Helvetica, sans-serif; font-size: 28px; font-weight: 500; }
-    .metric-label { fill: ${colors.metricLabel}; font-family: Arial, Helvetica, sans-serif; font-size: 22px; font-weight: 650; }
-    .metric-value { fill: ${colors.metricValue}; font-family: Arial, Helvetica, sans-serif; font-size: 42px; font-weight: 700; letter-spacing: -0.8px; }
+    .brand { fill: ${colors.brand}; font-family: ${OG_FONT_FAMILY}; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    .eyebrow { fill: ${colors.eyebrow}; font-family: ${OG_FONT_FAMILY}; font-size: 26px; font-weight: 700; }
+    .title { fill: ${colors.title}; font-family: ${OG_FONT_FAMILY}; font-size: 50px; font-weight: 700; letter-spacing: -1.6px; }
+    .body { fill: ${colors.body}; font-family: ${OG_FONT_FAMILY}; font-size: 28px; font-weight: 400; }
+    .metric-label { fill: ${colors.metricLabel}; font-family: ${OG_FONT_FAMILY}; font-size: 22px; font-weight: 700; }
+    .metric-value { fill: ${colors.metricValue}; font-family: ${OG_FONT_FAMILY}; font-size: 42px; font-weight: 700; letter-spacing: -0.8px; }
     .line { stroke: ${colors.line}; stroke-width: 2; }
     .spark-risk { stroke: #e11d48; stroke-width: 8; fill: none; stroke-linecap: butt; stroke-linejoin: round; }
     .spark-end { fill: #e11d48; }
