@@ -1,7 +1,9 @@
 allowBuilds:
   "@parcel/watcher": false
   esbuild: true
+  netlify-cli: true
   sharp: false
+  unix-dgram: false
 
 minimumReleaseAge: 1080 # 18 hours
 blockExoticSubdeps: true
