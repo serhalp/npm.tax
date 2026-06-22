@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   bundle-analyze:
@@ -32,10 +33,24 @@ jobs:
 
       - run: pnpm run build:analyze
 
-      - name: Upload bundle analysis
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: sonda-bundle-analysis
-          path: .sonda/
-          include-hidden-files: true
-          retention-days: 14
+      - name: Deploy bundle analysis to Netlify
+        run: |
+          mv .sonda/bundle.html .sonda/index.html
+          DEPLOY_JSON=$(pnpm exec netlify deploy --allow-anonymous --dir ./.sonda --no-build --json)
+          DEPLOY_URL=$(echo "$DEPLOY_JSON" | jq -r '.deploy_url')
+          echo "DEPLOY_URL=$DEPLOY_URL" >> "$GITHUB_ENV"
+          {
+            echo "## Bundle analysis"
+            echo ""
+            echo "Sonda report: <$DEPLOY_URL>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --body "Sonda bundle report: $DEPLOY_URL" \
+            --edit-last --create-if-none
