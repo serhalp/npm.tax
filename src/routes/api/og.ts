@@ -5,8 +5,8 @@ import { Resvg, type ResvgRenderOptions } from "@resvg/resvg-js";
 import { createFileRoute } from "@tanstack/react-router";
 import { ogCacheHeaders } from "../../lib/httpCache";
 import { renderOgSvg } from "../../lib/ogImage";
-import notoSans400DataUrl from "../../server/fonts/noto-sans-latin-400-normal.woff?url&inline";
-import notoSans700DataUrl from "../../server/fonts/noto-sans-latin-700-normal.woff?url&inline";
+import notoSansBoldDataUrl from "../../server/fonts/noto-sans-bold.ttf?url&inline";
+import notoSansRegularDataUrl from "../../server/fonts/noto-sans-regular.ttf?url&inline";
 
 type ResvgRenderOptionsWithFontBuffers = ResvgRenderOptions & {
   font?: NonNullable<ResvgRenderOptions["font"]> & {
@@ -19,8 +19,8 @@ function fontBufferFromDataUrl(dataUrl: string): Buffer {
 }
 
 const FONT_BUFFERS = [
-  fontBufferFromDataUrl(notoSans400DataUrl),
-  fontBufferFromDataUrl(notoSans700DataUrl),
+  fontBufferFromDataUrl(notoSansRegularDataUrl),
+  fontBufferFromDataUrl(notoSansBoldDataUrl),
 ];
 
 const RESVG_OPTIONS = {

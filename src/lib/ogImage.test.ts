@@ -53,7 +53,7 @@ describe("OG image XML helpers", () => {
 
 describe("OG SVG rendering", () => {
   test("renders the generic scenario copy", () => {
-    const svg = renderOgSvg(new URL("https://npm.tax/api/og?ogv=4"));
+    const svg = renderOgSvg(new URL("https://npm.tax/api/og?ogv=5"));
     const genericOgScenario = getRiskScenario({
       probExp: Math.log10(2.5e-6),
       days: 365 * 2,
@@ -188,7 +188,7 @@ describe("OG SVG rendering", () => {
       defaultScenario.timePeriodDays,
       defaultChartMaxProbability,
     );
-    const svg = renderOgSvg(new URL("https://npm.tax/api/og?ogv=4"));
+    const svg = renderOgSvg(new URL("https://npm.tax/api/og?ogv=5"));
 
     assert.equal(extractPath(svg, "spark-risk"), expectedGenericPath);
     assert.notEqual(extractPath(svg, "spark-risk"), oldDefaultPath);

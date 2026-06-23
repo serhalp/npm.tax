@@ -3,7 +3,7 @@ import { getRiskScenario, type RiskScenario, type RiskSearch } from "./riskModel
 export type OgVariant = "generic" | "scenario" | "package";
 export type OgTheme = "dark" | "light";
 
-export const OG_IMAGE_VERSION = "4";
+export const OG_IMAGE_VERSION = "5";
 export const DEFAULT_OG_THEME = "dark" satisfies OgTheme;
 
 const PROB_EXP_MIN = -8;
