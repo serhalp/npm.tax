@@ -264,7 +264,7 @@ importers:
         version: 6.0.3(vite@8.0.16(@types/node@26.0.1)(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.0))
       knip:
         specifier: ^6.17.1
-        version: 6.17.1
+        version: 6.17.2
       oxfmt:
         specifier: ^0.55.0
         version: 0.55.0
@@ -765,6 +765,12 @@ packages:
 
   '@napi-rs/wasm-runtime@1.1.5':
     resolution: {integrity: sha512-AWPoBRJ9tsnVhor4sjO7rkni+7p+2IAEFj6cx06UgP10jkQHqay/36uRV/bFkgrh18D9vb4cr8Q0Pthskgzy+Q==}
+    peerDependencies:
+      '@emnapi/core': ^1.7.1
+      '@emnapi/runtime': ^1.7.1
+
+  '@napi-rs/wasm-runtime@1.1.6':
+    resolution: {integrity: sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg==}
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
@@ -2050,6 +2056,9 @@ packages:
 
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
+
+  '@tybys/wasm-util@0.10.3':
+    resolution: {integrity: sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==}
 
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
@@ -3514,8 +3523,8 @@ packages:
     resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
     engines: {node: '>=18'}
 
-  knip@6.17.1:
-    resolution: {integrity: sha512-HcQsZSQ4Ymhuay4BVzJtM5pFZNDSomYYqcNCZOSITPQh9g18a09DqziWAxSt2G+BH9wGlG+0ZjWpEnaFlnKseQ==}
+  knip@6.17.2:
+    resolution: {integrity: sha512-TkjaPEg0No9aDCofdCLdB9+wxfrczvZNim15E/iLd+kz5lub90nZuwjiYqZg7xHTvQSITF2M6L3Bv9ydBkx28g==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -4255,8 +4264,8 @@ packages:
   slashes@3.0.12:
     resolution: {integrity: sha512-Q9VME8WyGkc7pJf6QEkj3wE+2CnvZMI+XJhwdTPR8Z/kWQRXi7boAWLDibRPyHRTUTPx5FaU7MsyrjI3yLB4HA==}
 
-  smol-toml@1.6.1:
-    resolution: {integrity: sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg==}
+  smol-toml@1.7.0:
+    resolution: {integrity: sha512-aqVvWoyO21L23mb+drl4RmMXbf6N7FdHjAhTRA9ZBL7apWBgfWC16KjrASI+1p9GAroljyMHj6fK67i0UiTNvQ==}
     engines: {node: '>= 18'}
 
   sonda@0.13.1:
@@ -5187,11 +5196,18 @@ snapshots:
       '@tybys/wasm-util': 0.10.2
     optional: true
 
-  '@napi-rs/wasm-runtime@1.1.5(@emnapi/core@1.11.0)(@emnapi/runtime@1.11.0)':
+  '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
+    dependencies:
+      '@emnapi/core': 1.10.0
+      '@emnapi/runtime': 1.10.0
+      '@tybys/wasm-util': 0.10.3
+    optional: true
+
+  '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.0)(@emnapi/runtime@1.11.0)':
     dependencies:
       '@emnapi/core': 1.11.0
       '@emnapi/runtime': 1.11.0
-      '@tybys/wasm-util': 0.10.2
+      '@tybys/wasm-util': 0.10.3
     optional: true
 
   '@netlify/ai@0.4.1':
@@ -5700,7 +5716,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.10.0
       '@emnapi/runtime': 1.10.0
-      '@napi-rs/wasm-runtime': 1.1.5(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
     optional: true
 
   '@oxc-parser/binding-win32-arm64-msvc@0.135.0':
@@ -5768,7 +5784,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.0
       '@emnapi/runtime': 1.11.0
-      '@napi-rs/wasm-runtime': 1.1.5(@emnapi/core@1.11.0)(@emnapi/runtime@1.11.0)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.0)(@emnapi/runtime@1.11.0)
     optional: true
 
   '@oxc-resolver/binding-win32-arm64-msvc@11.21.3':
@@ -6372,6 +6388,11 @@ snapshots:
   '@tanstack/virtual-file-routes@1.162.0': {}
 
   '@tybys/wasm-util@0.10.2':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
+  '@tybys/wasm-util@0.10.3':
     dependencies:
       tslib: 2.8.1
     optional: true
@@ -7866,7 +7887,7 @@ snapshots:
 
   jwt-decode@4.0.0: {}
 
-  knip@6.17.1:
+  knip@6.17.2:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       formatly: 0.3.0
@@ -7875,7 +7896,7 @@ snapshots:
       oxc-parser: 0.135.0
       oxc-resolver: 11.21.3
       picomatch: 4.0.4
-      smol-toml: 1.6.1
+      smol-toml: 1.7.0
       strip-json-comments: 5.0.3
       tinyglobby: 0.2.17
       unbash: 4.0.1
@@ -8742,7 +8763,7 @@ snapshots:
 
   slashes@3.0.12: {}
 
-  smol-toml@1.6.1: {}
+  smol-toml@1.7.0: {}
 
   sonda@0.13.1:
     dependencies:
