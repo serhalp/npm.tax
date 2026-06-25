@@ -38,7 +38,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260624.1",
     "@vitejs/plugin-react": "^6.0.2",
     "knip": "^6.17.1",
-    "oxfmt": "^0.55.0",
+    "oxfmt": "^0.56.0",
     "oxlint": "^1.70.0",
     "sonda": "^0.13.1",
     "tailwindcss": "^4.3.1",
