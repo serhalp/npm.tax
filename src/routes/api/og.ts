@@ -1,22 +1,27 @@
 /// <reference types="@tanstack/react-start" />
-import { Resvg } from "@resvg/resvg-js";
+
 import { createFileRoute } from "@tanstack/react-router";
+import { ImageResponse } from "@vercel/og";
 import { ogCacheHeaders } from "../../lib/httpCache";
-import { renderOgSvg } from "../../lib/ogImage";
+import { OG_IMAGE_SIZE } from "../../lib/ogImage";
+import { renderOgImage } from "../../lib/ogImageView";
+
+function imageResponseHeaders(): Record<string, string> {
+  const headers = ogCacheHeaders();
+  return {
+    "cache-control": headers["Cache-Control"] ?? "",
+    "netlify-cdn-cache-control": headers["Netlify-CDN-Cache-Control"] ?? "",
+  };
+}
 
 export const Route = createFileRoute("/api/og")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const svg = renderOgSvg(new URL(request.url));
-        const png = new Resvg(svg).render().asPng();
-
-        return new Response(new Uint8Array(png), {
-          headers: {
-            "Content-Type": "image/png",
-            "Content-Length": String(png.byteLength),
-            ...ogCacheHeaders(),
-          },
+        return new ImageResponse(renderOgImage(new URL(request.url)), {
+          width: OG_IMAGE_SIZE.width,
+          height: OG_IMAGE_SIZE.height,
+          headers: imageResponseHeaders(),
         });
       },
     },
