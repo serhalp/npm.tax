@@ -261,7 +261,7 @@ importers:
         version: 6.0.3(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.0))
       knip:
         specifier: ^6.20.0
-        version: 6.24.0
+        version: 6.26.0
       oxfmt:
         specifier: ^0.57.0
         version: 0.57.0
@@ -3458,8 +3458,8 @@ packages:
     resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
     engines: {node: '>=18'}
 
-  knip@6.24.0:
-    resolution: {integrity: sha512-PokLlgeEjLh1rAsB7ts+52wZ37HBr1nDhE6NNONwEaXdeZGCJOkP7ZlIAI2Gtu8xohquzTWy75bc/1diI9shQw==}
+  knip@6.26.0:
+    resolution: {integrity: sha512-e9eELEEpBpGTd4H4HB7818/DYj9dMzMyUqAddfYwUN/EbSkgIjOuWEF96W/xHsmV0SDrsdXjIM+oZ2xpPzPsBA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -7824,7 +7824,7 @@ snapshots:
 
   jwt-decode@4.0.0: {}
 
-  knip@6.24.0:
+  knip@6.26.0:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.5)
       formatly: 0.3.0
