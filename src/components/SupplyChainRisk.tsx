@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef, useId } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 
 import type { PackageDepsResult } from "../server/packageDeps";
 import { BlueskyIcon, CheckIcon, LinkIcon, MoonIcon, SunIcon, SystemIcon } from "./icons";
@@ -909,9 +909,12 @@ export default function SupplyChainRisk() {
     <div className="mx-auto max-w-7xl">
       <header className="border-b-2 border-ink pb-3">
         <div className="flex items-start justify-between gap-4">
-          <p className="font-mono text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+          <Link
+            to="/"
+            className="font-mono text-3xl font-semibold tracking-tight text-ink transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink sm:text-4xl"
+          >
             npm.tax
-          </p>
+          </Link>
           <div className="shrink-0">
             <ThemeToggle theme={theme} setTheme={setTheme} />
           </div>
