@@ -564,8 +564,12 @@ export default function SupplyChainRisk() {
       });
   }, [pkgName, pkgVersion, lookupLoading, navigate]);
 
+  // A version only ever belongs to the package it was entered for, so editing
+  // the name drops it rather than letting `express@4.18.2` become
+  // `lodash@4.18.2` on the next lookup.
   const handlePkgNameChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setPkgName(event.target.value);
+    setPkgVersion("");
   }, []);
 
   const handlePkgVersionChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
