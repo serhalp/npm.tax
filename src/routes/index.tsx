@@ -45,14 +45,14 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   return (
-    <main className="min-h-screen bg-slate-100 px-3 py-4 text-slate-950 dark:bg-slate-950 dark:text-slate-100 sm:px-4 sm:py-6 lg:py-8">
+    <main className="min-h-screen bg-paper px-4 py-6 text-ink sm:px-6 lg:py-10">
       <SupplyChainRisk />
-      <footer className="mx-auto mt-8 grid max-w-7xl grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-3 border-t border-slate-200/80 pt-5 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">
-        <p className="col-start-2 text-center">
+      <footer className="mx-auto mt-4 flex max-w-7xl items-center justify-between gap-4 border-t border-rule pt-5 text-sm leading-6 text-muted">
+        <p>
           No affiliation or endorsement by npm, Inc. Made by{" "}
           <a
             href="https://philippeserhal.com/"
-            className="rounded-sm font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:outline-none dark:text-slate-300 dark:decoration-slate-700 dark:hover:text-slate-100 dark:focus-visible:ring-slate-100"
+            className="font-medium text-ink underline decoration-rule-strong underline-offset-2 transition-colors hover:decoration-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             Philippe Serhal
           </a>{" "}
@@ -61,7 +61,7 @@ function Home() {
         <a
           href="https://github.com/serhalp/npm.tax"
           aria-label="View npm.tax on GitHub"
-          className="col-start-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200/70 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:focus-visible:ring-slate-100"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-muted transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           <GitHubIcon />
         </a>

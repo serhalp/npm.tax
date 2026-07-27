@@ -5,6 +5,7 @@ import { ImageResponse } from "@vercel/og";
 import { ogCacheHeaders } from "../../lib/httpCache";
 import { OG_IMAGE_SIZE } from "../../lib/ogImage";
 import { renderOgImage } from "../../lib/ogImageView";
+import { ogFonts } from "../../server/ogFonts";
 
 function imageResponseHeaders(): Record<string, string> {
   const headers = ogCacheHeaders();
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/api/og")({
         return new ImageResponse(renderOgImage(new URL(request.url)), {
           width: OG_IMAGE_SIZE.width,
           height: OG_IMAGE_SIZE.height,
+          fonts: ogFonts(),
           headers: imageResponseHeaders(),
         });
       },

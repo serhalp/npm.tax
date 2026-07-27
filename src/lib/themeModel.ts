@@ -13,8 +13,8 @@ export interface ThemeDocumentState {
 export const THEME_STORAGE_KEY = "theme";
 
 export const THEME_BACKGROUNDS = {
-  light: "#f1f5f9",
-  dark: "#020617",
+  light: "#eceee8",
+  dark: "#0e100a",
 } as const satisfies Record<ResolvedTheme, string>;
 
 export const THEME_BOOTSTRAP_STYLE = `

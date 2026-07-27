@@ -6,17 +6,130 @@
    default while still defaulting to it. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Self-hosted so the app ships no font dependencies of its own. Archivo carries
+   both a weight and a width axis; width is what encodes hierarchy here. */
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("/fonts/archivo-variable-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/plex-mono-400-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/plex-mono-600-latin.woff2") format("woff2");
+}
+
+/* Semantic tokens. Defined as plain custom properties so SVG presentation
+   attributes and first-paint styles can read them straight from the
+   bootstrapped theme, with no React state involved. */
+:root {
+  --paper: #eceee8;
+  --surface: #f6f7f2;
+  --ink: #14170e;
+  --ink-faint: #14170e57;
+  --muted: #565c4c;
+  --rule: #14170e1f;
+  --rule-strong: #14170e45;
+  --levy: #a03222;
+  --levy-wash: #a0322214;
+  --ochre: #7e5a0a;
+  --moss: #2f5638;
+
+  /* Categorical series colours. Deliberately no red or green: those are reserved
+     for the severity ramp, and a series colour must not imply good or bad. Each
+     series also carries a distinct dash pattern and weight, because three hues
+     that all clear AA on a light ground end up close in greyscale. */
+  --series-a: #123f68;
+  --series-a-wash: #123f6817;
+  --series-b: #7a4cb0;
+  --series-c: #57657a;
+}
+
+.dark {
+  --paper: #0e100a;
+  --surface: #171a11;
+  --ink: #e9ebe0;
+  --ink-faint: #e9ebe052;
+  --muted: #969c8a;
+  --rule: #e9ebe026;
+  --rule-strong: #e9ebe04d;
+  --levy: #ea6c55;
+  --levy-wash: #ea6c5518;
+  --ochre: #d9a244;
+  --moss: #7eb08b;
+
+  --series-a: #a6cdf7;
+  --series-a-wash: #a6cdf71f;
+  --series-b: #b18ee0;
+  --series-c: #8296ad;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-faint: var(--ink-faint);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-levy: var(--levy);
+  --color-ochre: var(--ochre);
+  --color-moss: var(--moss);
+  --color-series-a: var(--series-a);
+  --color-series-b: var(--series-b);
+  --color-series-c: var(--series-c);
+
+  --font-sans: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* The three type registers. Hierarchy is carried by width as much as by size:
+   wide for verdicts, normal for prose, condensed for the label scaffolding. */
+@utility statement {
+  font-stretch: 112%;
+  font-weight: 700;
+  line-height: 1.03;
+  letter-spacing: -0.021em;
+}
+
+@utility eyebrow {
+  font-stretch: 74%;
+  font-weight: 600;
+  font-size: 0.78125rem;
+  line-height: 1.25;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+@utility figure-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
 body {
-  @apply m-0 bg-slate-100 dark:bg-slate-950;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
-    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  @apply m-0 bg-paper text-ink;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: var(--font-mono);
 }
 
 h1,
@@ -30,5 +143,70 @@ p {
 }
 
 ::selection {
-  @apply bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950;
+  @apply bg-ink text-paper;
+}
+
+/* Range inputs are drawn from the tokens so the track reads as a ruled line
+   rather than a pill. */
+input[type="range"] {
+  @apply w-full cursor-pointer bg-transparent;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6px;
+  border-radius: 0;
+  background: var(--ink);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 0;
+  background: var(--ink);
+}
+
+/* One orchestrated page-load moment: the package field wipes in and the risk
+   curve draws itself. Nothing else animates. */
+@media (prefers-reduced-motion: no-preference) {
+  .field-wipe {
+    animation: field-wipe 620ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  .curve-draw {
+    stroke-dasharray: var(--curve-length, 1200);
+    stroke-dashoffset: var(--curve-length, 1200);
+    animation: curve-draw 900ms cubic-bezier(0.33, 0.9, 0.4, 1) 120ms both;
+  }
+}
+
+@keyframes field-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes curve-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }

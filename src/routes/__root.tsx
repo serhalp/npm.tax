@@ -3,7 +3,7 @@ import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 import { THEME_BACKGROUNDS, THEME_BOOTSTRAP_STYLE, THEME_STORAGE_KEY } from "../lib/themeModel";
 import "../styles.css";
 
-// Applies the saved (or system-resolved) color theme before the app renders.
+// Applies the saved (or system-resolved) colour theme before the app renders.
 // Mirrors themeModel.ts; kept inline and dependency-free so it runs before app
 // markup and client JavaScript are available.
 const THEME_INIT_SCRIPT = `
@@ -31,6 +31,27 @@ export const Route = createRootRoute({
       {
         title: "npm.tax: npm supply chain risk explorer",
       },
+    ],
+    links: [
+      {
+        rel: "preload",
+        as: "font",
+        type: "font/woff2",
+        href: "/fonts/archivo-variable-latin.woff2",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "preload",
+        as: "font",
+        type: "font/woff2",
+        href: "/fonts/plex-mono-600-latin.woff2",
+        crossOrigin: "anonymous",
+      },
+      // The SVG follows the OS theme and is preferred where supported; the .ico
+      // carries hand-tuned 16/32/48 rasters for everything else.
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/x-icon", sizes: "16x16 32x32 48x48", href: "/favicon.ico" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootDocument,

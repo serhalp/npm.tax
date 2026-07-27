@@ -6,8 +6,9 @@ Interactive app for exploring how npm dependency count, time, and per-package co
 
 - URL-backed controls for direct dependencies, transitive dependencies, time horizon, and daily breach probability.
 - Real npm package lookup via a server route that calls npmx install-size data and the npm registry, with Netlify Cache API/CDN caching.
-- Inline SVG charts and visuals.
-- Dynamic Open Graph images for shared scenarios.
+- Inline SVG charts and visuals, including a package field that draws one mark per modeled package so the transitive tree is shown at true scale.
+- A named severity assessment (low / medium / high) alongside every figure, so risk level never depends on colour alone.
+- Dynamic Open Graph images for shared scenarios, rendered with the same palette, type, and numbers as the page.
 - Light/dark/system theme toggle and shareable links.
 - Plain-language math notes for the independent Bernoulli model.
 
@@ -15,7 +16,8 @@ Interactive app for exploring how npm dependency count, time, and per-package co
 
 - TanStack Start + TanStack Router + Vite 8
 - React 19 + TypeScript strict mode
-- Tailwind CSS v4
+- Tailwind CSS v4, with semantic design tokens that flip between light and dark
+- Self-hosted Archivo and IBM Plex Mono; no font packages, no webfont CDN
 - Netlify Cache API for package lookup responses
 - Netlify Vite plugin for deployment and full platform emulation in dev
 - Sonda for bundle visualization

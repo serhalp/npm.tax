@@ -30,4 +30,4 @@ Not SaaS marketing. Not a generic Geist or Vercel clone. Not maximalist. Not cry
 
 ## Accessibility & Inclusion
 
-Aim for WCAG AA contrast and keyboard-operable controls. Do not rely on color alone to communicate risk severity. Respect reduced-motion preferences. Keep copy readable for technical users who are not security specialists.
+Aim for WCAG AA contrast and keyboard-operable controls. Do not rely on colour alone to communicate risk severity. Respect reduced-motion preferences. Keep copy readable for technical users who are not security specialists.

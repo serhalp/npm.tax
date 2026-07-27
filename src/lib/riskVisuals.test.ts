@@ -6,15 +6,15 @@ import {
   breachProbabilityTone,
   expectedBreachTimeTone,
   expandedSliderMax,
-  getDependencyIcebergGeometry,
-  toSvgPoints,
+  FIELD_ASPECT,
+  FIELD_MAX_MARKS,
+  FIELD_MIN_COLS,
+  FIELD_SIZE,
+  getPackageFieldGeometry,
 } from "./riskVisuals.ts";
 
-function assertAlmostEqual(actual: number, expected: number, epsilon = 1e-12): void {
-  assert.ok(
-    Math.abs(actual - expected) <= epsilon,
-    `expected ${actual} to be within ${epsilon} of ${expected}`,
-  );
+function countMarks(path: string): number {
+  return path === "" ? 0 : path.split("M").length - 1;
 }
 
 describe("risk tones", () => {
@@ -51,59 +51,135 @@ describe("slider ranges", () => {
   });
 });
 
-describe("dependency iceberg geometry", () => {
-  test("uses a minimum visible direct segment when there are no external deps", () => {
-    const geometry = getDependencyIcebergGeometry(0, 0);
+describe("package field geometry", () => {
+  test("draws one mark per package and splits root from transitive", () => {
+    const field = getPackageFieldGeometry(1, 23, 848);
 
-    assert.equal(geometry.totalExternalDeps, 0);
-    assert.equal(geometry.directShare, 0);
-    assert.equal(geometry.splitY, 32);
-    assertAlmostEqual(geometry.splitHalfWidth, 79.15789473684211);
+    assert.equal(field.totalPackages, 872);
+    assert.equal(field.totalMarks, 872);
+    assert.equal(field.packagesPerMark, 1);
+    assert.equal(field.selfMarks, 1);
+    assert.equal(field.directMarks, 23);
+    assert.equal(field.transitiveMarks, 848);
+    assert.equal(countMarks(field.selfPath), 1);
+    assert.equal(countMarks(field.directPath), 23);
+    assert.equal(countMarks(field.transitivePath), 848);
   });
 
-  test("uses the minimum split for all-transitive scenarios", () => {
-    const geometry = getDependencyIcebergGeometry(0, 500);
+  test("lays marks out as a band inside the fixed viewBox width", () => {
+    const field = getPackageFieldGeometry(1, 23, 848);
 
-    assert.equal(geometry.totalExternalDeps, 500);
-    assert.equal(geometry.directShare, 0);
-    assert.equal(geometry.splitY, 32);
+    assert.equal(field.cols, 57);
+    assert.equal(field.rows, 16);
+    assert.equal(field.width, FIELD_SIZE);
+    assert.ok(field.cols * field.rows >= field.totalMarks);
+    assert.ok(field.cell < field.pitch, "marks must leave a gutter between them");
+  });
+
+  test("bands always sum to the drawn mark total", () => {
+    for (const [direct, transitive] of [
+      [0, 0],
+      [23, 848],
+      [167, 927],
+      [200, 40_000],
+      [40_000, 10],
+      [5, 0],
+      [0, 500],
+    ]) {
+      const field = getPackageFieldGeometry(1, direct, transitive);
+      assert.equal(
+        field.selfMarks + field.directMarks + field.transitiveMarks,
+        field.totalMarks,
+        `bands did not sum for ${direct} direct / ${transitive} transitive`,
+      );
+      assert.equal(
+        countMarks(field.selfPath) +
+          countMarks(field.directPath) +
+          countMarks(field.transitivePath),
+        field.totalMarks,
+      );
+    }
+  });
+
+  test("holds roughly the target aspect across realistic tree sizes", () => {
+    for (const transitive of [848, 927, 5000, 40_000]) {
+      const field = getPackageFieldGeometry(1, 23, transitive);
+      const aspect = field.width / field.height;
+      assert.ok(
+        aspect > FIELD_ASPECT * 0.8 && aspect < FIELD_ASPECT * 1.25,
+        `aspect ${aspect} strayed too far from ${FIELD_ASPECT} at ${transitive} transitive`,
+      );
+    }
+  });
+
+  test("keeps a lone root package visible with no dependencies", () => {
+    const field = getPackageFieldGeometry(1, 0, 0);
+
+    assert.equal(field.totalPackages, 1);
+    assert.equal(field.selfMarks, 1);
+    assert.equal(field.directMarks, 0);
+    assert.equal(countMarks(field.selfPath), 1);
+    assert.equal(field.directPath, "");
+    assert.equal(field.transitivePath, "");
+  });
+
+  test("keeps marks small for tiny trees instead of drawing huge blocks", () => {
+    const field = getPackageFieldGeometry(1, 2, 0);
+
+    assert.equal(field.totalPackages, 3);
+    assert.equal(field.cols, FIELD_MIN_COLS);
+    assert.equal(field.rows, 1);
+    assert.ok(field.cell <= FIELD_SIZE / FIELD_MIN_COLS);
   });
 
   test("treats negative dependency inputs as zero", () => {
-    const geometry = getDependencyIcebergGeometry(-10, 20);
+    const field = getPackageFieldGeometry(1, -10, 20);
 
-    assert.equal(geometry.totalExternalDeps, 20);
-    assert.equal(geometry.directShare, 0);
-    assert.equal(geometry.splitY, 32);
+    assert.equal(field.totalPackages, 21);
+    assert.equal(field.selfMarks, 1);
+    assert.equal(field.directMarks, 0);
+    assert.equal(countMarks(field.transitivePath), 20);
   });
 
-  test("caps the direct segment for all-direct scenarios", () => {
-    const geometry = getDependencyIcebergGeometry(500, 0);
+  test("caps drawn marks and reports the scale it switched to", () => {
+    const field = getPackageFieldGeometry(1, 200, 40_000);
 
-    assert.equal(geometry.totalExternalDeps, 500);
-    assert.equal(geometry.directShare, 1);
-    assert.equal(geometry.splitY, 84);
-    assertAlmostEqual(geometry.splitHalfWidth, 47);
-  });
-
-  test("scales mixed dependency ratios by square root of direct share", () => {
-    const geometry = getDependencyIcebergGeometry(25, 75);
-
-    assert.equal(geometry.totalExternalDeps, 100);
-    assert.equal(geometry.directShare, 0.25);
-    assert.equal(geometry.splitY, 84);
-    assert.deepEqual(geometry.directPoints[0], [26, 8]);
-    assert.deepEqual(geometry.directPoints[1], [214, 8]);
-    assert.deepEqual(geometry.transitivePoints.at(-1), [120, 160]);
-  });
-
-  test("formats point arrays for SVG polygon attributes", () => {
+    assert.equal(field.totalPackages, 40_201);
+    assert.ok(field.totalMarks <= FIELD_MAX_MARKS);
+    assert.equal(field.packagesPerMark, Math.ceil(40_201 / FIELD_MAX_MARKS));
     assert.equal(
-      toSvgPoints([
-        [1, 2],
-        [3.5, 4],
-      ]),
-      "1,2 3.5,4",
+      countMarks(field.selfPath) + countMarks(field.directPath) + countMarks(field.transitivePath),
+      field.totalMarks,
+    );
+  });
+
+  test("keeps every non-empty band visible when marks are scaled", () => {
+    const field = getPackageFieldGeometry(1, 40_000, 10);
+
+    assert.ok(field.packagesPerMark > 1, "expected the mark cap to kick in");
+    assert.ok(field.selfMarks >= 1, "a single root package must still get a mark");
+    assert.ok(field.transitiveMarks >= 1, "ten transitive packages must still get a mark");
+    assert.ok(field.directMarks < field.totalMarks);
+    assert.ok(countMarks(field.transitivePath) >= 1);
+  });
+
+  test("deals the same marks flatter when a caller asks for a wider aspect", () => {
+    const page = getPackageFieldGeometry(1, 23, 848);
+    const strip = getPackageFieldGeometry(1, 23, 848, 32);
+
+    assert.equal(strip.totalMarks, page.totalMarks);
+    assert.ok(strip.cols > page.cols);
+    assert.ok(strip.rows < page.rows);
+    assert.ok(strip.width / strip.height > page.width / page.height);
+  });
+
+  test("falls back to the column floor on a degenerate aspect", () => {
+    const field = getPackageFieldGeometry(1, 23, 848, 0);
+
+    assert.equal(field.cols, FIELD_MIN_COLS);
+    assert.equal(
+      countMarks(field.selfPath) + countMarks(field.directPath) + countMarks(field.transitivePath),
+      field.totalMarks,
     );
   });
 });

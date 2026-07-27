@@ -7,7 +7,6 @@ import {
   buildLine,
   formatBytes,
   formatDays,
-  formatModeledPackageCount,
   formatPackageCount,
   formatProb,
   formatTimeSliderValue,
@@ -25,8 +24,7 @@ import {
   breachProbabilityTone,
   expectedBreachTimeTone,
   expandedSliderMax,
-  getDependencyIcebergGeometry,
-  toSvgPoints,
+  getPackageFieldGeometry,
   type RiskTone,
 } from "../lib/riskVisuals";
 
@@ -50,159 +48,375 @@ async function fetchPackageDeps(name: string, version?: string): Promise<Package
   return (await res.json()) as PackageDepsResult;
 }
 
-const CHART_W = 700;
-const CHART_H = 350;
-const PAD = { top: 20, right: 30, bottom: 50, left: 60 };
-const INNER_W = CHART_W - PAD.left - PAD.right;
-const INNER_H = CHART_H - PAD.top - PAD.bottom;
+/** Minimum vertical gap between the direct labels at the line ends. */
+const LABEL_MIN_GAP = 29;
 
-const RISK_TONES = {
-  good: {
-    panel: "border-emerald-200 bg-emerald-50/80 dark:border-emerald-900/50 dark:bg-emerald-950/25",
-    heading: "text-emerald-950 dark:text-emerald-50",
-    body: "text-emerald-900/85 dark:text-emerald-100/80",
-    rule: "border-emerald-200/80 dark:border-emerald-900/60",
-  },
-  warning: {
-    panel: "border-amber-200 bg-amber-50/80 dark:border-amber-900/50 dark:bg-amber-950/25",
-    heading: "text-amber-950 dark:text-amber-50",
-    body: "text-amber-900/85 dark:text-amber-100/80",
-    rule: "border-amber-200/80 dark:border-amber-900/60",
-  },
-  danger: {
-    panel: "border-red-200 bg-red-50/80 dark:border-red-900/50 dark:bg-red-950/25",
-    heading: "text-red-950 dark:text-red-50",
-    body: "text-red-900/85 dark:text-red-100/80",
-    rule: "border-red-200/80 dark:border-red-900/60",
-  },
-} as const satisfies Record<RiskTone, Record<string, string>>;
-
-interface ChartLine {
-  label: string;
-  color: string;
-  data: { x: number; y: number }[];
-  dashed?: boolean;
+interface ChartLayout {
+  w: number;
+  h: number;
+  pad: { top: number; right: number; bottom: number; left: number };
+  endLabels: boolean;
 }
 
-function SVGChart({
+/**
+ * Two viewBoxes rather than one responsive chart: SVG text scales with the
+ * viewBox, so a single wide chart squeezed into a phone renders its labels at
+ * four or five pixels. The narrow box keeps type legible at small widths.
+ */
+const CHART_WIDE: ChartLayout = {
+  w: 720,
+  h: 268,
+  pad: { top: 18, right: 104, bottom: 34, left: 44 },
+  endLabels: true,
+};
+
+const CHART_NARROW: ChartLayout = {
+  w: 360,
+  h: 220,
+  pad: { top: 12, right: 14, bottom: 28, left: 34 },
+  endLabels: false,
+};
+
+interface ToneStyles {
+  label: string;
+  text: React.CSSProperties;
+  chip: React.CSSProperties;
+  swatch: React.CSSProperties;
+}
+
+/** Style objects live at module scope so they stay referentially stable. */
+function makeTone(label: string, color: string): ToneStyles {
+  return {
+    label,
+    text: { color },
+    chip: { color, borderColor: color },
+    swatch: { backgroundColor: color },
+  };
+}
+
+/**
+ * Severity is never carried by colour alone: each tone also names itself in the
+ * assessment chip.
+ */
+const RISK_TONES = {
+  good: makeTone("Low", "var(--moss)"),
+  warning: makeTone("Medium", "var(--ochre)"),
+  danger: makeTone("High", "var(--levy)"),
+} as const satisfies Record<RiskTone, ToneStyles>;
+
+const INK_TEXT: React.CSSProperties = { color: "var(--ink)" };
+
+/**
+ * Each series is identified by hue, dash pattern and weight together. Three
+ * hues that all clear AA on a light ground sit close in greyscale, so colour
+ * alone is never the only cue. No red or green: those belong to the severity
+ * ramp and must not leak into categorical encoding.
+ */
+const SERIES = {
+  all: { stroke: "var(--series-a)", width: 2.5 },
+  half: { stroke: "var(--series-c)", dash: "8 5", width: 2 },
+  direct: { stroke: "var(--series-b)", dash: "2 4", width: 2 },
+} as const;
+const CURVE_STYLE = { "--curve-length": 1400 } as React.CSSProperties;
+const END_LABEL_STYLE: React.CSSProperties = { fontStretch: "68%" };
+
+const EYEBROW = "eyebrow text-muted";
+const FIELD_INPUT =
+  "h-11 w-full border border-rule-strong bg-surface px-3 font-mono text-base text-ink placeholder:text-muted focus:border-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink md:text-sm sm:h-10";
+
+interface ChartLine {
+  key: string;
+  /** Short form for the in-chart end label, which has a fixed gutter. */
+  label: string;
+  /** Long form, with counts, for the key shown under the narrow chart. */
+  detail: string;
+  value: string;
+  data: { x: number; y: number }[];
+  primary?: boolean;
+  /** Series identity: colour and dash carry it redundantly. */
+  stroke: string;
+  dash?: string;
+  width: number;
+}
+
+/**
+ * Cumulative probability over the horizon. Lines are labelled where they end
+ * rather than in a legend, so the eye never has to round-trip to a key.
+ */
+function RiskCurve({
   lines,
   maxDays,
   ariaLabel,
+  layout,
+  className,
 }: {
   lines: ChartLine[];
   maxDays: number;
   ariaLabel: string;
+  layout: ChartLayout;
+  className?: string;
 }) {
   const titleId = useId();
-  const yTicks = [0, 0.25, 0.5, 0.75, 1.0];
-  const xTicks = useMemo(() => {
-    const count = 5;
-    const arr: number[] = [];
-    for (let i = 0; i <= count; i++) arr.push(Math.round((maxDays * i) / count));
-    return arr;
-  }, [maxDays]);
+  const { w: CHART_W, h: CHART_H, pad: PAD } = layout;
+  const INNER_W = CHART_W - PAD.left - PAD.right;
+  const INNER_H = CHART_H - PAD.top - PAD.bottom;
 
-  const toX = (d: number) => PAD.left + (d / maxDays) * INNER_W;
-  const toY = (p: number) => PAD.top + (1 - p) * INNER_H;
+  const toX = useCallback(
+    (d: number) => PAD.left + (d / maxDays) * INNER_W,
+    [maxDays, PAD.left, INNER_W],
+  );
+  const toY = useCallback((p: number) => PAD.top + (1 - p) * INNER_H, [PAD.top, INNER_H]);
+
+  const xTicks = useMemo(() => [0, Math.round(maxDays / 2), maxDays], [maxDays]);
+
+  const rendered = useMemo(() => {
+    const paths = lines.map((line) => ({
+      ...line,
+      d: line.data
+        .map((pt, i) => `${i === 0 ? "M" : "L"}${toX(pt.x).toFixed(2)},${toY(pt.y).toFixed(2)}`)
+        .join(" "),
+      // Rounded because `breachProb` can land on marginally different doubles
+      // under Node and the browser, which would trip a hydration mismatch on
+      // an unrounded coordinate attribute.
+      endY: Math.round(toY(line.data.at(-1)?.y ?? 0) * 100) / 100,
+    }));
+
+    // Push overlapping end labels apart, working up from the lowest line.
+    // Sorting an index array keeps `paths` in render order, so the primary
+    // curve still paints last.
+    const order = paths.map((_, index) => index);
+    order.sort((a, b) => paths[b].endY - paths[a].endY);
+    let previous = Infinity;
+    for (const index of order) {
+      const item = paths[index];
+      item.endY = Math.min(item.endY, previous - LABEL_MIN_GAP);
+      previous = item.endY;
+    }
+
+    // When every line saturates they all pile up at the top, so the stack can
+    // be pushed clean out of the plot. Slide it back down as a unit.
+    const topLimit = PAD.top + 8;
+    const highest = Math.min(...paths.map((item) => item.endY));
+    if (highest < topLimit) {
+      const shift = topLimit - highest;
+      for (const item of paths) item.endY += shift;
+    }
+    return paths;
+  }, [lines, toX, toY, PAD.top]);
+
+  const axisFill = "var(--muted)";
+
+  const primary = rendered.find((line) => line.primary);
+  const areaD = primary
+    ? `${primary.d} L${toX(maxDays).toFixed(2)},${toY(0).toFixed(2)} L${toX(0).toFixed(2)},${toY(0).toFixed(2)} Z`
+    : "";
 
   return (
     <svg
       viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-      className="w-full h-auto"
+      className={`h-auto w-full overflow-visible ${className ?? ""}`}
       aria-labelledby={titleId}
       focusable="false"
     >
       <title id={titleId}>{ariaLabel}</title>
-      <rect
-        x={PAD.left}
-        y={PAD.top}
-        width={INNER_W}
-        height={INNER_H}
-        className="fill-slate-50 stroke-slate-200 dark:fill-slate-900 dark:stroke-slate-700"
-      />
-      {yTicks.map((t) => (
-        <g key={`y-${t}`}>
+
+      {[0, 0.5, 1].map((tick) => (
+        <g key={`y-${tick}`}>
           <line
             x1={PAD.left}
-            y1={toY(t)}
+            y1={toY(tick)}
             x2={PAD.left + INNER_W}
-            y2={toY(t)}
-            className="stroke-slate-200 dark:stroke-slate-700"
-            strokeDasharray="4 4"
+            y2={toY(tick)}
+            stroke="var(--rule)"
+            strokeWidth="1"
           />
           <text
             x={PAD.left - 8}
-            y={toY(t) + 5}
+            y={toY(tick) + 4}
             textAnchor="end"
-            className="fill-slate-600 dark:fill-slate-300 font-mono"
-            fontSize="13"
+            fill={axisFill}
+            fontSize="11"
+            fontFamily="var(--font-mono)"
           >
-            {(t * 100).toFixed(0)}%
+            {tick * 100}%
           </text>
         </g>
       ))}
-      {xTicks.map((t) => (
-        <g key={`x-${t}`}>
-          <line
-            x1={toX(t)}
-            y1={PAD.top}
-            x2={toX(t)}
-            y2={PAD.top + INNER_H}
-            className="stroke-slate-200 dark:stroke-slate-700"
-            strokeDasharray="4 4"
-          />
-          <text
-            x={toX(t)}
-            y={PAD.top + INNER_H + 20}
-            textAnchor="middle"
-            className="fill-slate-600 dark:fill-slate-300 font-mono"
-            fontSize="13"
-          >
-            {t}d
-          </text>
-        </g>
-      ))}
-      <text
-        x={PAD.left + INNER_W / 2}
-        y={CHART_H - 4}
-        textAnchor="middle"
-        className="fill-slate-700 dark:fill-slate-200"
-        fontSize="14"
-        fontWeight="600"
-      >
-        Days
-      </text>
-      <text
-        x={14}
-        y={PAD.top + INNER_H / 2}
-        textAnchor="middle"
-        className="fill-slate-700 dark:fill-slate-200"
-        fontSize="14"
-        fontWeight="600"
-        transform={`rotate(-90, 14, ${PAD.top + INNER_H / 2})`}
-      >
-        Breach Probability
-      </text>
 
-      {lines.map((line) => {
-        const pathD = line.data
-          .map((pt, i) => {
-            const cmd = i === 0 ? "M" : "L";
-            return `${cmd}${toX(pt.x).toFixed(2)},${toY(pt.y).toFixed(2)}`;
-          })
-          .join(" ");
-        return (
-          <path
-            key={line.label}
-            d={pathD}
-            fill="none"
-            stroke={line.color}
-            strokeWidth={line.dashed ? 1.5 : 2.5}
-            strokeDasharray={line.dashed ? "6 4" : undefined}
-          />
-        );
-      })}
+      {xTicks.map((tick, i) => (
+        <text
+          key={`x-${tick}`}
+          x={toX(tick)}
+          y={PAD.top + INNER_H + 20}
+          textAnchor={i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"}
+          fill={axisFill}
+          fontSize="11"
+          fontFamily="var(--font-mono)"
+        >
+          {tick}d
+        </text>
+      ))}
+
+      {areaD && <path d={areaD} fill="var(--series-a-wash)" />}
+
+      {rendered.map((line) => (
+        <path
+          key={line.key}
+          className={line.primary ? "curve-draw" : undefined}
+          d={line.d}
+          fill="none"
+          stroke={line.stroke}
+          strokeWidth={line.width}
+          strokeDasharray={line.dash}
+          strokeLinecap="round"
+          style={line.primary ? CURVE_STYLE : undefined}
+        />
+      ))}
+
+      {layout.endLabels &&
+        rendered.map((line) => (
+          <g key={`label-${line.key}`}>
+            <text
+              x={PAD.left + INNER_W + 10}
+              y={line.endY - 1}
+              fill={line.stroke}
+              fontSize="14"
+              fontFamily="var(--font-mono)"
+              fontWeight={line.primary ? 600 : 400}
+            >
+              {line.value}
+            </text>
+            <text
+              x={PAD.left + INNER_W + 10}
+              y={line.endY + 12}
+              fill={axisFill}
+              fontSize="9.5"
+              fontWeight="600"
+              letterSpacing="0.09em"
+              style={END_LABEL_STYLE}
+            >
+              {line.label.toUpperCase()}
+            </text>
+          </g>
+        ))}
     </svg>
+  );
+}
+
+/** Chart key for the narrow layout, where end labels have nowhere to go. */
+function CurveKey({ lines }: { lines: ChartLine[] }) {
+  return (
+    <dl className="mt-4 space-y-2 sm:hidden">
+      {lines.map((line) => (
+        <div
+          key={line.key}
+          className="flex items-baseline justify-between gap-3 border-t border-rule pt-2"
+        >
+          <dt className={`${EYEBROW} flex items-center gap-1.5`}>
+            <svg
+              viewBox="0 0 18 4"
+              className="h-1 w-4 shrink-0"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <line
+                x1="1"
+                y1="2"
+                x2="17"
+                y2="2"
+                stroke={line.stroke}
+                strokeWidth={line.width}
+                strokeDasharray={line.dash}
+                strokeLinecap="round"
+              />
+            </svg>
+            {line.detail}
+          </dt>
+          <dd className="figure-num text-sm font-semibold" style={INK_TEXT}>
+            {line.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** One band of the package field: swatch, name, count. */
+function FieldLegendItem({
+  swatch,
+  label,
+  value,
+}: {
+  swatch: string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <dt className={`${EYEBROW} flex items-center gap-1.5`}>
+        <span className={`inline-block h-2 w-2 shrink-0 ${swatch}`} aria-hidden="true" />
+        {label}
+      </dt>
+      <dd className="figure-num text-lg font-semibold text-ink">{value.toLocaleString()}</dd>
+    </div>
+  );
+}
+
+/**
+ * One mark per modeled package, in three bands: the package itself, its direct
+ * dependencies, then the transitive tree. Proportion is the whole argument, so
+ * it is drawn at true scale rather than diagrammed.
+ */
+function PackageField({
+  directDeps,
+  transitiveDeps,
+  hiddenRisk,
+}: {
+  directDeps: number;
+  transitiveDeps: number;
+  hiddenRisk: number;
+}) {
+  const titleId = useId();
+  const field = useMemo(
+    () => getPackageFieldGeometry(MODELED_ROOT_PACKAGE_COUNT, directDeps, transitiveDeps),
+    [directDeps, transitiveDeps],
+  );
+  const selfCount = MODELED_ROOT_PACKAGE_COUNT;
+
+  return (
+    <div>
+      <h2 className={`${EYEBROW} mb-3`}>Every modeled package</h2>
+      <svg
+        viewBox={`0 0 ${field.width} ${field.height}`}
+        className="field-wipe h-auto w-full"
+        aria-labelledby={titleId}
+        focusable="false"
+      >
+        <title id={titleId}>
+          {`Field of ${field.totalPackages.toLocaleString()} marks, one per modeled package: ${selfCount.toLocaleString()} for the package itself, ${directDeps.toLocaleString()} direct dependencies, ${transitiveDeps.toLocaleString()} transitive dependencies.`}
+        </title>
+        <path d={field.transitivePath} fill="var(--ink-faint)" />
+        <path d={field.directPath} fill="var(--series-b)" />
+        <path d={field.selfPath} fill="var(--ink)" />
+      </svg>
+
+      <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t border-rule pt-3">
+        <dl className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+          <FieldLegendItem swatch="bg-ink" label="Self" value={selfCount} />
+          <FieldLegendItem swatch="bg-series-b" label="Direct deps" value={directDeps} />
+          <FieldLegendItem swatch="bg-ink-faint" label="Transitive deps" value={transitiveDeps} />
+        </dl>
+
+        <p className="text-sm leading-6 text-muted">
+          {field.packagesPerMark > 1 && (
+            <>One mark stands for {field.packagesPerMark.toLocaleString()} packages. </>
+          )}
+          {transitiveDeps === 0
+            ? "No transitive tree in this scenario."
+            : `${formatProb(hiddenRisk)} additional modeled probability from the transitive tree.`}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -232,12 +446,12 @@ function Slider({
   );
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-between items-baseline">
-        <label htmlFor={id} className="text-sm font-medium text-slate-700 dark:text-slate-300">
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={id} className={EYEBROW}>
           {label}
         </label>
-        <span className="text-sm font-mono text-slate-900 dark:text-slate-100 font-semibold">
+        <span className="figure-num text-base font-semibold text-ink">
           {format ? format(value) : value}
         </span>
       </div>
@@ -251,9 +465,9 @@ function Slider({
         step={step}
         value={value}
         onChange={handleChange}
-        className="h-11 w-full cursor-pointer accent-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:accent-slate-100 dark:focus-visible:outline-slate-100 rounded-sm sm:h-7"
+        className="h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink sm:h-7"
       />
-      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+      <div className="figure-num flex justify-between text-xs text-muted">
         <span>{format ? format(min) : min}</span>
         <span>{format ? format(max) : max}</span>
       </div>
@@ -277,7 +491,7 @@ function applyTheme(theme: Theme): boolean {
 }
 
 /**
- * Color-mode state. Defaults to following the operating system and remembers any
+ * Colour-mode state. Defaults to following the operating system and remembers any
  * explicit choice in local storage. The inline script in __root.tsx applies the
  * stored value before render to avoid a flash.
  */
@@ -318,7 +532,7 @@ function useTheme() {
   return { theme, setTheme };
 }
 
-/** Compact, icon-only light / dark / system selector for the top-right corner. */
+/** Compact, icon-only light / dark / system selector for the masthead. */
 function ThemeToggleButton({
   value,
   label,
@@ -343,10 +557,8 @@ function ThemeToggleButton({
       title={label}
       aria-label={`${label} theme`}
       aria-pressed={active}
-      className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:outline-none dark:focus-visible:ring-slate-100 sm:h-8 sm:w-8 ${
-        active
-          ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-          : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+      className={`flex h-11 w-11 items-center justify-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:h-8 sm:w-8 ${
+        active ? "bg-ink text-paper" : "text-muted hover:text-ink"
       }`}
     >
       {children}
@@ -356,7 +568,7 @@ function ThemeToggleButton({
 
 function ThemeToggle({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   return (
-    <fieldset className="inline-flex items-center gap-0.5 rounded-full border border-slate-300 bg-white p-0.5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <fieldset className="inline-flex items-center border border-rule-strong">
       <legend className="sr-only">Theme</legend>
       <ThemeToggleButton value="light" label="Light" active={theme === "light"} setTheme={setTheme}>
         <SunIcon />
@@ -376,94 +588,31 @@ function ThemeToggle({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) =
   );
 }
 
-function LegendSwatch({ color, dashed = false }: { color: string; dashed?: boolean }) {
-  return (
-    <svg viewBox="0 0 16 8" className="h-2 w-4 shrink-0" aria-hidden="true" focusable="false">
-      <line
-        x1="1"
-        y1="4"
-        x2="15"
-        y2="4"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeDasharray={dashed ? "4 3" : undefined}
-      />
-    </svg>
-  );
-}
-
-function DependencyIceberg({
-  directDeps,
-  transitiveDeps,
-  additionalRisk,
+/** A ruled label/value row, the repeating unit of the assessment. */
+function LineItem({
+  label,
+  value,
+  note,
+  tone,
 }: {
-  directDeps: number;
-  transitiveDeps: number;
-  additionalRisk: number;
+  label: string;
+  value: string;
+  note?: string;
+  tone?: React.CSSProperties;
 }) {
-  const titleId = useId();
-  const iceberg = getDependencyIcebergGeometry(directDeps, transitiveDeps);
-  const directPoints = toSvgPoints(iceberg.directPoints);
-  const transitivePoints = toSvgPoints(iceberg.transitivePoints);
-
   return (
-    <div>
-      <svg
-        viewBox="0 0 240 172"
-        aria-labelledby={titleId}
-        className="mx-auto mt-2 h-auto w-full max-w-56"
+    // Two `dd`s rather than a nested note: keeping the note a sibling lets the
+    // label and value hold one line on narrow screens, with the note dropping
+    // beneath instead of pushing the value onto its own row.
+    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 border-t border-rule py-2.5">
+      <dt className={EYEBROW}>{label}</dt>
+      <dd
+        className="figure-num ml-auto text-xl font-semibold whitespace-nowrap"
+        style={tone ?? INK_TEXT}
       >
-        <title id={titleId}>
-          {`Dependency iceberg showing ${directDeps.toLocaleString()} direct dependencies above ${transitiveDeps.toLocaleString()} transitive dependencies.`}
-        </title>
-        <line
-          x1="18"
-          y1={iceberg.splitY}
-          x2="222"
-          y2={iceberg.splitY}
-          className="stroke-slate-300 dark:stroke-slate-700"
-          strokeWidth="2"
-          strokeDasharray="7 7"
-        />
-        <polygon
-          points={directPoints}
-          className="fill-slate-600/80 stroke-slate-700 dark:fill-slate-300/85 dark:stroke-slate-200"
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <polygon
-          points={transitivePoints}
-          className="fill-teal-500/70 stroke-teal-700 dark:fill-teal-300/75 dark:stroke-teal-200"
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400">
-        <div className="rounded-md bg-white/55 px-2 py-1.5 dark:bg-slate-950/25">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-slate-600 dark:bg-slate-300" />
-            <span>Direct</span>
-          </div>
-          <p className="mt-0.5 font-semibold text-slate-950 dark:text-slate-100">
-            {directDeps.toLocaleString()}
-          </p>
-        </div>
-        <div className="rounded-md bg-white/55 px-2 py-1.5 dark:bg-slate-950/25">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-teal-500 dark:bg-teal-300" />
-            <span>Transitive</span>
-          </div>
-          <p className="mt-0.5 font-semibold text-slate-950 dark:text-slate-100">
-            {transitiveDeps.toLocaleString()}
-          </p>
-        </div>
-      </div>
-      <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-400">
-        {iceberg.totalExternalDeps === 0
-          ? "No external dependency iceberg in this scenario."
-          : `${formatProb(additionalRisk)} additional modeled probability from the below-surface tree.`}
-      </p>
+        {value}
+      </dd>
+      {note && <dd className="w-full text-right text-xs text-muted sm:ml-0 sm:w-auto">{note}</dd>}
     </div>
   );
 }
@@ -705,12 +854,9 @@ export default function SupplyChainRisk() {
     );
   }, [packageRef, prob, timePeriodDays]);
 
-  const breachTone = breachProbabilityTone(prob);
-  const expectedTone = expectedBreachTimeTone(ettb);
-  const breachTheme = RISK_TONES[breachTone];
-  const expectedTheme = RISK_TONES[expectedTone];
+  const breachTone = RISK_TONES[breachProbabilityTone(prob)];
+  const expectedTone = RISK_TONES[expectedBreachTimeTone(ettb)];
   const rootLabel = packageRef ? "the package itself" : "the project itself";
-  const rootNoun = packageRef ? "Package" : "Project";
   const reportDetail = packageRef
     ? "Resolved package graph from npm metadata"
     : "Manual dependency assumptions";
@@ -719,187 +865,207 @@ export default function SupplyChainRisk() {
   const directSliderMax = expandedSliderMax(directDeps, 200, 50);
   const transitiveSliderMax = expandedSliderMax(transitiveDeps, 5000, 500);
 
+  const chartAriaLabel =
+    "Line chart of cumulative breach probability over time for all modeled packages, half of the transitive tree, and the root package plus its direct dependencies";
+
   const lines: ChartLine[] = useMemo(() => {
     const steps = 100;
+    const build = (deps: number) => buildLine(deps, dailyP, timePeriodDays, steps);
+    const all = build(totalDeps);
+    const direct = build(directBaselineDeps);
+    const half = build(halfTransitiveDeps);
+    const last = (d: { x: number; y: number }[]) => formatProb(d.at(-1)?.y ?? 0);
+
     return [
       {
-        label: `All ${formatPackageCount(totalDeps)}`,
-        color: "#e11d48",
-        data: buildLine(totalDeps, dailyP, timePeriodDays, steps),
+        key: "all",
+        label: "All packages",
+        detail: `All ${formatPackageCount(totalDeps)}`,
+        value: last(all),
+        data: all,
+        primary: true,
+        ...SERIES.all,
       },
       {
-        label: `${rootNoun} + direct (${directBaselineDeps})`,
-        color: "#64748b",
-        data: buildLine(directBaselineDeps, dailyP, timePeriodDays, steps),
-        dashed: true,
+        key: "half",
+        label: "Half transitive",
+        detail: `Half transitive (${halfTransitiveDeps.toLocaleString()})`,
+        value: last(half),
+        data: half,
+        ...SERIES.half,
       },
       {
-        label: `Half transitive (${halfTransitiveDeps})`,
-        color: "#0f766e",
-        data: buildLine(halfTransitiveDeps, dailyP, timePeriodDays, steps),
-        dashed: true,
+        key: "direct",
+        label: "Self + direct",
+        detail: `Self + direct (${directBaselineDeps.toLocaleString()})`,
+        value: last(direct),
+        data: direct,
+        ...SERIES.direct,
       },
     ];
-  }, [totalDeps, rootNoun, directBaselineDeps, halfTransitiveDeps, dailyP, timePeriodDays]);
+  }, [totalDeps, directBaselineDeps, halfTransitiveDeps, dailyP, timePeriodDays]);
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-5 flex items-start justify-between gap-3">
-        <div>
-          <p className="font-mono text-4xl font-semibold tracking-tight text-slate-950 dark:text-slate-100">
+      <header className="border-b-2 border-ink pb-3">
+        <div className="flex items-start justify-between gap-4">
+          <p className="font-mono text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             npm.tax
           </p>
-          <p className="mt-1 max-w-xl text-md text-slate-600 dark:text-slate-400">
-            Model the risk of a supply-chain compromise in an npm dependency tree, explore
-            scenarios, and share a report to convince your boss that you're sitting ducks.
-          </p>
+          <div className="shrink-0">
+            <ThemeToggle theme={theme} setTheme={setTheme} />
+          </div>
         </div>
-        <div className="shrink-0">
-          <ThemeToggle theme={theme} setTheme={setTheme} />
-        </div>
-      </div>
+        <p className="mt-1.5 max-w-xl text-base leading-6 text-muted">
+          Model the risk of a supply-chain compromise in an npm dependency tree, explore scenarios,
+          and share a report to convince your boss that you&apos;re sitting ducks.
+        </p>
+      </header>
 
-      <section className={`mb-6 rounded-xl border p-5 sm:p-6 ${breachTheme.panel}`}>
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
-          <div>
-            <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-slate-600 dark:text-slate-400">
-              {packageRef ? (
-                <>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                    Package report for
-                  </span>
-                  <span className="max-w-full truncate font-mono font-semibold text-slate-950 dark:text-slate-100 sm:max-w-xs">
-                    {packageRef}
-                  </span>
-                </>
-              ) : (
-                <span className="font-medium text-slate-700 dark:text-slate-300">Scenario</span>
+      {/* Results left, instrument right: the report reads as one continuous
+          column you could screenshot, and the controls stay beside the chart. */}
+      <div className="grid gap-10 py-7 sm:py-9 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
+        <div className="min-w-0">
+          {/* Report masthead: what this is and how it rates. */}
+          <div className="mb-5 border-b border-rule pb-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+              <span className={EYEBROW}>{packageRef ? "Package report for" : "Scenario"}</span>
+              {packageRef && (
+                <span className="max-w-full truncate font-mono text-sm font-semibold text-ink">
+                  {packageRef}
+                </span>
               )}
-              <span aria-hidden="true" className="hidden text-slate-400 sm:inline">
+              <span aria-hidden="true" className="hidden text-muted sm:inline">
                 /
               </span>
-              <span className="hidden text-slate-600 dark:text-slate-400 sm:inline">
-                {reportDetail}
+              <span className="hidden text-sm text-muted sm:inline">{reportDetail}</span>
+              <span
+                className="eyebrow flex items-center gap-1.5 border px-2 py-1"
+                style={breachTone.chip}
+              >
+                <span
+                  className="inline-block h-1.5 w-1.5 shrink-0"
+                  style={breachTone.swatch}
+                  aria-hidden="true"
+                />
+                Assessed {breachTone.label}
               </span>
-            </div>
-            <h1
-              className={`max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl ${breachTheme.heading}`}
-            >
-              {packageRef ? (
-                <>
-                  <span className="font-mono">{packageRef}</span> has a {formatProb(prob)} modeled
-                  chance of at least one package compromise in {formatDays(timePeriodDays)}.
-                </>
-              ) : (
-                <>
-                  This scenario has a {formatProb(prob)} modeled chance of at least one package
-                  compromise in {formatDays(timePeriodDays)}.
-                </>
-              )}
-            </h1>
-            <div className={`mt-5 border-y py-4 ${breachTheme.rule}`}>
-              <dl>
-                <dt className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Expected time to breach
-                </dt>
-                <dd
-                  className={`mt-1 text-3xl font-semibold tracking-tight ${expectedTheme.heading}`}
-                >
-                  {formatDays(ettb)}
-                </dd>
-              </dl>
-            </div>
-            <p className={`mt-4 max-w-3xl text-base leading-7 ${breachTheme.body}`}>
-              {packageRef ? (
-                <>
-                  For <strong>{packageRef}</strong>, this scenario uses{" "}
-                </>
-              ) : (
-                <>This scenario uses </>
-              )}
-              {formatModeledPackageCount(totalDeps)} ({rootLabel} + {directDeps.toLocaleString()}{" "}
-              direct + {transitiveDeps.toLocaleString()} transitive) and a{" "}
-              <span className="font-mono">{dailyP.toExponential(2)}</span> daily per-package breach
-              probability.
-            </p>
-            <p className={`mt-4 max-w-3xl text-base leading-7 ${breachTheme.body}`}>
-              Adjust parameters below to see how they affect overall risk.
-            </p>
-            <div className="mt-5 grid max-w-md grid-cols-2 gap-2 sm:flex sm:max-w-none sm:flex-wrap">
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                aria-label={copied ? "Report link copied" : "Copy report link"}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-current/20 bg-white/75 px-3.5 text-xs font-semibold text-inherit transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:outline-none dark:bg-slate-950/35 dark:hover:bg-slate-950/50 dark:focus-visible:ring-slate-100 sm:h-9"
-              >
-                {copied ? (
-                  <>
-                    <CheckIcon />
-                    <span className="sm:hidden">Copied</span>
-                    <span className="hidden sm:inline">Report link copied</span>
-                  </>
-                ) : (
-                  <>
-                    <LinkIcon />
-                    <span className="sm:hidden">Copy link</span>
-                    <span className="hidden sm:inline">Copy report link</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleShareToBluesky}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-slate-950 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white dark:focus-visible:ring-slate-100 dark:focus-visible:ring-offset-slate-950 sm:h-9"
-              >
-                <BlueskyIcon />
-                <span className="whitespace-nowrap">Share to Bluesky</span>
-              </button>
             </div>
           </div>
 
-          <dl
-            className={`grid gap-4 border-t pt-4 sm:grid-cols-2 lg:block lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6 ${breachTheme.rule}`}
-          >
-            <div>
-              <dt className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                Dependency iceberg
-              </dt>
-              <dd className="mt-2">
-                <DependencyIceberg
-                  directDeps={directDeps}
-                  transitiveDeps={transitiveDeps}
-                  additionalRisk={hiddenRisk}
-                />
-              </dd>
-            </div>
-            <div
-              className={`border-t pt-4 sm:border-t-0 sm:pt-0 lg:mt-5 lg:border-t lg:pt-5 ${breachTheme.rule}`}
-            >
-              <dt className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                Modeled surface
-              </dt>
-              <dd className="mt-1 text-2xl font-semibold text-slate-950 dark:text-slate-100">
-                {totalDeps.toLocaleString()}
-              </dd>
-              <dd className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                includes {rootLabel}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </section>
+          <h1 className="statement max-w-4xl text-[1.95rem] [font-stretch:100%] text-ink sm:text-5xl sm:[font-stretch:112%]">
+            {packageRef ? (
+              <>
+                <span className="font-mono">{packageRef}</span> has a{" "}
+                <span style={breachTone.text}>{formatProb(prob)}</span> modeled chance of at least
+                one package compromise in {formatDays(timePeriodDays)}.
+              </>
+            ) : (
+              <>
+                This scenario has a <span style={breachTone.text}>{formatProb(prob)}</span> modeled
+                chance of at least one package compromise in {formatDays(timePeriodDays)}.
+              </>
+            )}
+          </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] gap-5 xl:gap-6">
-        <div className="space-y-5">
-          <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="text-base font-semibold text-slate-950 dark:text-slate-100">
-              Look up a real package&apos;s risk
-            </h2>
-            <p className="text-sm leading-6 text-slate-600 dark:text-slate-400">
+          {/* Claim, then the numbers behind it, then the field as the proof. */}
+          <dl className="mt-7 border-b border-rule">
+            <LineItem label="Modeled surface" value={totalDeps.toLocaleString()} note="packages" />
+            <LineItem
+              label="Daily breach prob / package"
+              value={dailyP.toExponential(2)}
+              note="scenario assumption"
+            />
+            <LineItem label="Time period" value={formatDays(timePeriodDays)} />
+            <LineItem
+              label="Expected time to breach"
+              value={formatDays(ettb)}
+              tone={expectedTone.text}
+            />
+          </dl>
+
+          <div className="mt-8">
+            <PackageField
+              directDeps={directDeps}
+              transitiveDeps={transitiveDeps}
+              hiddenRisk={hiddenRisk}
+            />
+          </div>
+
+          <p className="mt-8 max-w-3xl text-base leading-7 text-muted">
+            Adjust the parameters to see how they affect overall risk.
+          </p>
+
+          <div className="mt-10 border-t border-rule pt-8">
+            <section>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h2 className="statement text-xl text-ink">Cumulative breach probability</h2>
+                <span className={EYEBROW}>{formatDays(timePeriodDays)} horizon</span>
+              </div>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+                The full tree is the risk line. The dashed lines show how much direct dependencies
+                alone understate the surface area.
+              </p>
+              <div className="mt-6 pr-1">
+                <RiskCurve
+                  lines={lines}
+                  maxDays={timePeriodDays}
+                  layout={CHART_WIDE}
+                  className="hidden sm:block"
+                  ariaLabel={chartAriaLabel}
+                />
+                <RiskCurve
+                  lines={lines}
+                  maxDays={timePeriodDays}
+                  layout={CHART_NARROW}
+                  className="sm:hidden"
+                  ariaLabel={chartAriaLabel}
+                />
+                <CurveKey lines={lines} />
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <aside className="space-y-9 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-4rem)] lg:self-start lg:overflow-y-auto">
+          {/* Sharing the report is the goal of the tool, so the actions sit at
+              the top of the rail rather than buried in the report body. */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              aria-label={copied ? "Report link copied" : "Copy report link"}
+              className="eyebrow inline-flex h-11 items-center justify-center gap-2 border border-rule-strong px-3 text-ink transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:h-10"
+            >
+              {copied ? (
+                <>
+                  <CheckIcon />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <LinkIcon />
+                  Copy link
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleShareToBluesky}
+              aria-label="Share to Bluesky"
+              className="eyebrow inline-flex h-11 items-center justify-center gap-2 bg-ink px-3 text-paper transition-opacity hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:h-10"
+            >
+              <BlueskyIcon />
+              Share
+            </button>
+          </div>
+          <section>
+            <h2 className="statement text-xl text-ink">Look up a real package&apos;s risk</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
               Pull dependency counts from npm and npmx, then use them as the starting point for the
               scenario.
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="mt-4 flex flex-col gap-2">
               <label htmlFor={lookupPkgNameId} className="sr-only">
                 Package name
               </label>
@@ -910,8 +1076,8 @@ export default function SupplyChainRisk() {
                 value={pkgName}
                 onChange={handlePkgNameChange}
                 onKeyDown={handleLookupInputKeyDown}
-                placeholder="Package name (e.g. express)"
-                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 font-mono text-base text-slate-950 placeholder:text-slate-500 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 md:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-300 dark:focus:ring-slate-300/20 sm:h-10"
+                placeholder="Package name (e.g. jest)"
+                className={FIELD_INPUT}
               />
               <label htmlFor={lookupPkgVersionId} className="sr-only">
                 Version (optional)
@@ -923,48 +1089,44 @@ export default function SupplyChainRisk() {
                 value={pkgVersion}
                 onChange={handlePkgVersionChange}
                 onKeyDown={handleLookupInputKeyDown}
-                placeholder="Version (optional, e.g. 4.18.2)"
-                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 font-mono text-base text-slate-950 placeholder:text-slate-500 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 md:text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-300 dark:focus:ring-slate-300/20 sm:h-10"
+                placeholder="Version (optional, e.g. 30.4.2)"
+                className={FIELD_INPUT}
               />
               <button
                 type="button"
                 onClick={handleLookup}
                 disabled={lookupLoading || !pkgName.trim()}
-                className="inline-flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white dark:disabled:bg-slate-800 dark:disabled:text-slate-500 dark:focus-visible:ring-slate-100 dark:focus-visible:ring-offset-slate-900 sm:h-10"
+                className="eyebrow inline-flex h-11 w-full items-center justify-center bg-ink text-paper transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:bg-rule-strong disabled:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:h-10"
               >
                 {lookupLoading ? "Looking up…" : "Fetch dependency count"}
               </button>
             </div>
-            <output aria-live="polite" className="block mt-2 min-h-[1.5rem]">
-              {lookupError && (
-                <p className="text-xs text-red-600 dark:text-red-400 font-medium">
-                  Error: {lookupError}
-                </p>
-              )}
+            <output aria-live="polite" className="mt-3 block min-h-[1.5rem]">
+              {lookupError && <p className="text-xs font-medium text-levy">Error: {lookupError}</p>}
               {!lookupError && lookupLoading && (lookupTarget || search.pkg) && !lookupResult && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted">
                   Loading {lookupTarget ?? `${search.pkg}${search.v ? `@${search.v}` : ""}`}…
                 </p>
               )}
               {lookupResult && (
-                <div className="space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-300">
-                  <p className="font-medium text-slate-800 dark:text-slate-200">
+                <div className="space-y-1 border-t border-rule pt-3 text-xs leading-5 text-muted">
+                  <p className="font-mono font-semibold text-ink">
                     {lookupResult.package}@{lookupResult.version}
                   </p>
                   <p>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    <span className="figure-num font-semibold text-ink">
                       {lookupResult.totalDeps.toLocaleString()}
                     </span>{" "}
                     total dependencies ({lookupResult.directDeps} direct +{" "}
                     {lookupResult.transitiveDeps.toLocaleString()} transitive)
                   </p>
-                  <p className="text-slate-500 dark:text-slate-400">
+                  <p>
                     Install size {formatBytes(lookupResult.totalSizeBytes)} · via{" "}
                     <a
                       href={`https://npmx.dev/package/${encodeURIComponent(lookupResult.package)}/v/${encodeURIComponent(lookupResult.version)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-sm underline hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:outline-none dark:hover:text-slate-300 dark:focus-visible:ring-slate-100"
+                      className="underline decoration-rule-strong underline-offset-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     >
                       npmx.dev
                     </a>
@@ -974,95 +1136,86 @@ export default function SupplyChainRisk() {
             </output>
           </section>
 
-          <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="text-base font-semibold text-slate-950 dark:text-slate-100">
-              Tune the model
-            </h2>
-            <Slider
-              label="Direct dependencies"
-              value={directDeps}
-              min={0}
-              max={directSliderMax}
-              step={1}
-              onChange={setDirectDeps}
-            />
-            <Slider
-              label="Transitive dependencies"
-              value={transitiveDeps}
-              min={0}
-              max={transitiveSliderMax}
-              step={1}
-              onChange={setTransitiveDeps}
-            />
-            <Slider
-              label="Time period"
-              value={timePeriodDays}
-              min={1}
-              max={1095}
-              step={1}
-              onChange={setTimePeriodDays}
-              format={formatTimeSliderValue}
-            />
-
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between items-baseline">
-                <label
-                  htmlFor={dailyProbInputId}
-                  className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                >
-                  Daily breach prob / package
-                </label>
-                <span className="text-sm font-mono text-slate-900 dark:text-slate-100 font-semibold">
-                  {dailyP.toExponential(2)}
-                </span>
-              </div>
-              <input
-                id={dailyProbInputId}
-                aria-label="Daily breach probability per package"
-                aria-valuetext={dailyP.toExponential(2)}
-                type="range"
-                min={-8}
-                max={-3}
-                step={0.05}
-                value={dailyProbExp}
-                onChange={handleDailyProbExpChange}
-                className="h-11 w-full cursor-pointer accent-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:accent-slate-100 dark:focus-visible:outline-slate-100 rounded-sm sm:h-7"
+          <section>
+            <h2 className="statement text-xl text-ink">Tune the model</h2>
+            <div className="mt-5 space-y-6">
+              <Slider
+                label="Direct dependencies"
+                value={directDeps}
+                min={0}
+                max={directSliderMax}
+                step={1}
+                onChange={setDirectDeps}
               />
-              <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                <span>1e-8 (~0.00037%/yr)</span>
-                <span>1e-3 (~30.6%/yr)</span>
-              </div>
-              <div className="mt-1">
-                <label
-                  htmlFor={exactProbInputId}
-                  className="text-xs text-slate-600 dark:text-slate-400"
-                >
-                  Or enter exact value:
-                </label>
+              <Slider
+                label="Transitive dependencies"
+                value={transitiveDeps}
+                min={0}
+                max={transitiveSliderMax}
+                step={1}
+                onChange={setTransitiveDeps}
+              />
+              <Slider
+                label="Time period"
+                value={timePeriodDays}
+                min={1}
+                max={1095}
+                step={1}
+                onChange={setTimePeriodDays}
+                format={formatTimeSliderValue}
+              />
+
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <label htmlFor={dailyProbInputId} className={EYEBROW}>
+                    Daily breach prob / package
+                  </label>
+                  <span className="figure-num text-base font-semibold text-ink">
+                    {dailyP.toExponential(2)}
+                  </span>
+                </div>
                 <input
-                  id={exactProbInputId}
-                  aria-label="Exact daily breach probability per package"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder={`Current: ${dailyP.toExponential(2)}`}
-                  className="mt-1 h-11 w-full rounded-md border border-slate-300 bg-white px-3 font-mono text-base text-slate-950 placeholder:text-slate-500 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 md:text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-300 dark:focus:ring-slate-300/20 sm:h-9"
-                  onBlur={handleExactProbInputBlur}
-                  onKeyDown={handleExactProbInputKeyDown}
+                  id={dailyProbInputId}
+                  aria-label="Daily breach probability per package"
+                  aria-valuetext={dailyP.toExponential(2)}
+                  type="range"
+                  min={-8}
+                  max={-3}
+                  step={0.05}
+                  value={dailyProbExp}
+                  onChange={handleDailyProbExpChange}
+                  className="h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink sm:h-7"
                 />
+                <div className="figure-num flex justify-between text-xs text-muted">
+                  <span>1e-8 (~0.00037%/yr)</span>
+                  <span>1e-3 (~30.6%/yr)</span>
+                </div>
+                <div className="mt-2">
+                  <label htmlFor={exactProbInputId} className="text-xs text-muted">
+                    Or enter exact value:
+                  </label>
+                  <input
+                    id={exactProbInputId}
+                    aria-label="Exact daily breach probability per package"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={dailyP.toExponential(2)}
+                    className={`${FIELD_INPUT} mt-1.5 md:text-xs sm:h-9`}
+                    onBlur={handleExactProbInputBlur}
+                    onKeyDown={handleExactProbInputKeyDown}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-4 text-xs leading-5 text-slate-600 dark:border-slate-800 dark:text-slate-400">
-              <p className="font-medium mb-1 text-slate-700 dark:text-slate-300">
-                About the default
-              </p>
+            <div className="mt-6 border-t border-rule pt-4 text-xs leading-5 text-muted">
               <p>
                 Default dependency counts use Table 2 from{" "}
                 <a
                   href="https://www.cs.cmu.edu/afs/cs.cmu.edu/Web/People/ckaestne/pdf/fse25.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-sm underline hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:outline-none dark:hover:text-slate-300 dark:focus-visible:ring-slate-100"
+                  className="underline decoration-rule-strong underline-offset-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                 >
                   <em>Pinning Is Futile</em>
                 </a>
@@ -1072,70 +1225,38 @@ export default function SupplyChainRisk() {
               </p>
             </div>
           </section>
-        </div>
+        </aside>
+      </div>
 
-        <div className="space-y-5">
-          <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-slate-950 dark:text-slate-100">
-                  Cumulative breach probability
-                </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400">
-                  The full tree is the risk line. The dashed lines show how much direct dependencies
-                  alone understate the surface area.
+      <div className="border-t-2 border-ink pt-6">
+        <section className="border-t border-rule pt-6">
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_270px]">
+            <div>
+              <h2 className="statement text-xl text-ink">Model notes</h2>
+              <div className="mt-3 max-w-3xl space-y-2.5 text-sm leading-6 text-muted">
+                <p>
+                  Each package has a daily breach probability <em>p</em>. With <em>n</em> total
+                  modeled packages, including {rootLabel}, the chance that none are breached on a
+                  given day is <code>(1 - p)^n</code>.
                 </p>
-              </div>
-              <span className="inline-flex w-fit items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                {formatDays(timePeriodDays)} horizon
-              </span>
-            </div>
-            <SVGChart
-              lines={lines}
-              maxDays={timePeriodDays}
-              ariaLabel="Line chart showing cumulative breach probability over time for all modeled packages, project plus direct dependencies, and half of the transitive dependency tree"
-            />
-            <div className="mt-4 flex flex-wrap gap-3 text-xs">
-              {lines.map((l) => (
-                <div
-                  key={l.label}
-                  className="flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-slate-600 dark:bg-slate-800/70 dark:text-slate-300"
-                >
-                  <LegendSwatch color={l.color} dashed={l.dashed} />
-                  <span>{l.label}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900/70 sm:p-6">
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]">
-              <div>
-                <h2 className="text-base font-semibold text-slate-950 dark:text-slate-100">
-                  Model notes
-                </h2>
-                <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  <p>
-                    Each package has a daily breach probability <em>p</em>. With <em>n</em> total
-                    modeled packages, including {rootLabel}, the chance that none are breached on a
-                    given day is <code>(1 - p)^n</code>.
-                  </p>
-                  <p>
-                    Over <em>d</em> days, the chance of staying breach-free is{" "}
-                    <code>(1 - p)^(n x d)</code>. The model treats package-days as independent, so
-                    use it as directional evidence rather than a forecast.
-                  </p>
-                </div>
-              </div>
-              <div className="border-t border-slate-200 pt-4 dark:border-slate-800 md:border-t-0 md:border-l md:pt-0 md:pl-5">
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Formula</p>
-                <p className="mt-3 text-center font-mono text-sm font-semibold text-slate-950 dark:text-slate-100">
-                  P(breach) = 1 - (1 - p)<sup>n x d</sup>
+                <p>
+                  Over <em>d</em> days, the chance of staying breach-free is{" "}
+                  <code>(1 - p)^(n x d)</code>. The model treats package-days as independent, so use
+                  it as directional evidence rather than a forecast.
                 </p>
               </div>
             </div>
-          </section>
-        </div>
+            <div className="border-t border-rule pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+              <p className={EYEBROW}>Formula</p>
+              <p className="figure-num mt-3 text-sm leading-6 font-semibold text-ink">
+                <span className="whitespace-nowrap">P(breach) =</span>{" "}
+                <span className="whitespace-nowrap">
+                  1 - (1 - p)<sup>n&nbsp;x&nbsp;d</sup>
+                </span>
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );
