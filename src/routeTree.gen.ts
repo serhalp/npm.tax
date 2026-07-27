@@ -10,22 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPackageDepsRouteImport } from './routes/api/package-deps'
 import { Route as ApiOgRouteImport } from './routes/api/og'
+import { Route as ApiPackageDepsRouteImport } from './routes/api/package-deps'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPackageDepsRoute = ApiPackageDepsRouteImport.update({
-  id: '/api/package-deps',
-  path: '/api/package-deps',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiOgRoute = ApiOgRouteImport.update({
   id: '/api/og',
   path: '/api/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPackageDepsRoute = ApiPackageDepsRouteImport.update({
+  id: '/api/package-deps',
+  path: '/api/package-deps',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -68,18 +68,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/package-deps': {
-      id: '/api/package-deps'
-      path: '/api/package-deps'
-      fullPath: '/api/package-deps'
-      preLoaderRoute: typeof ApiPackageDepsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/og': {
       id: '/api/og'
       path: '/api/og'
       fullPath: '/api/og'
       preLoaderRoute: typeof ApiOgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/package-deps': {
+      id: '/api/package-deps'
+      path: '/api/package-deps'
+      fullPath: '/api/package-deps'
+      preLoaderRoute: typeof ApiPackageDepsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
