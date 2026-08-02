@@ -10,6 +10,7 @@ Interactive app for exploring how npm dependency count, time, and per-package co
 - Real npm package lookup via a server route that calls npmx install-size data and the npm registry, with Netlify Cache API/CDN caching.
 - Inline SVG charts and visuals, including a unit chart that draws one mark per modeled package so the transitive tree is shown at true scale.
 - A named severity assessment (low / medium / high) alongside every figure, so risk level never depends on colour alone.
+- A "What can I do about it?" section that turns findings into actions, one column per input you control: fewer packages (`n`), fewer open doors (`p_impacted`), and acting sooner (`d`). It points at valuable, under-utilized tools like knip, e18e, zizmor, and Socket Firewall Free.
 - Dynamic Open Graph images for shared scenarios, rendered with the same palette, type, and numbers as the page.
 - Light/dark/system theme toggle and shareable links.
 - Every slider's readout doubles as an exact-value input, so you can type a figure instead of dragging to it.
