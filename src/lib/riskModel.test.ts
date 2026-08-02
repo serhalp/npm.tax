@@ -18,6 +18,8 @@ import {
   getScenarioDescription,
   getScenarioTitle,
   MODELED_ROOT_PACKAGE_COUNT,
+  parseControlValue,
+  parseProbabilityExponent,
 } from "./riskModel.ts";
 
 function assertAlmostEqual(actual: number, expected: number, epsilon = 1e-12): void {
@@ -154,5 +156,67 @@ describe("risk scenarios", () => {
     assert.equal(scenario.isDefaultScenario, false);
     assert.match(getScenarioTitle(scenario), /^npm risk scenario:/);
     assert.match(getScenarioDescription(scenario), /^An npm dependency-risk scenario/);
+  });
+});
+
+describe("parseControlValue", () => {
+  test("parses plain integers", () => {
+    assert.equal(parseControlValue("848", { min: 0 }), 848);
+  });
+
+  test("tolerates the grouping separators the readout itself renders", () => {
+    assert.equal(parseControlValue("1,250", { min: 0 }), 1250);
+    assert.equal(parseControlValue(" 1 250 ", { min: 0 }), 1250);
+  });
+
+  test("rounds fractional input to whole packages", () => {
+    assert.equal(parseControlValue("12.4", { min: 0 }), 12);
+    assert.equal(parseControlValue("12.6", { min: 0 }), 13);
+  });
+
+  test("clamps below min", () => {
+    assert.equal(parseControlValue("-50", { min: 0 }), 0);
+    assert.equal(parseControlValue("0", { min: 1 }), 1);
+  });
+
+  test("clamps to max only when one is given", () => {
+    assert.equal(parseControlValue("99999", { min: 1, max: 1095 }), 1095);
+    // Counts have no ceiling: the slider track grows to fit instead.
+    assert.equal(parseControlValue("99999", { min: 0 }), 99999);
+  });
+
+  test("returns null for input that is not a number", () => {
+    assert.equal(parseControlValue("nonsense", { min: 0 }), null);
+    assert.equal(parseControlValue("12abc", { min: 0 }), null);
+  });
+
+  test("treats an empty field as no change rather than as min", () => {
+    assert.equal(parseControlValue("", { min: 0 }), null);
+    assert.equal(parseControlValue("   ", { min: 0 }), null);
+  });
+});
+
+describe("parseProbabilityExponent", () => {
+  test("converts a probability to its base-10 exponent", () => {
+    assertAlmostEqual(parseProbabilityExponent("1e-6") ?? NaN, -6);
+    assertAlmostEqual(parseProbabilityExponent("0.001") ?? NaN, -3);
+  });
+
+  test("round-trips through the exponent the slider carries", () => {
+    const exponent = parseProbabilityExponent("2.5e-6");
+    assert.notEqual(exponent, null);
+    assert.equal((10 ** (exponent ?? 0)).toExponential(2), "2.50e-6");
+  });
+
+  test("rejects values outside an open (0, 1)", () => {
+    assert.equal(parseProbabilityExponent("0"), null);
+    assert.equal(parseProbabilityExponent("1"), null);
+    assert.equal(parseProbabilityExponent("-1e-6"), null);
+    assert.equal(parseProbabilityExponent("2"), null);
+  });
+
+  test("rejects unparseable and empty input", () => {
+    assert.equal(parseProbabilityExponent("banana"), null);
+    assert.equal(parseProbabilityExponent(""), null);
   });
 });
