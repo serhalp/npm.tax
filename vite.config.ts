@@ -14,12 +14,6 @@ const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  optimizeDeps: {
-    exclude: ["@resvg/resvg-js"],
-  },
-  ssr: {
-    external: ["@resvg/resvg-js"],
-  },
   plugins: [
     tailwindcss(),
     netlify(),
