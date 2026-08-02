@@ -1602,9 +1602,9 @@ export default function SupplyChainRisk() {
               <ul className="list-none space-y-3">
                 <LeverItem>
                   <strong className="text-ink">Turn off install scripts.</strong> Most recent npm
-                  attacks fire during install, not at runtime. pnpm 10+, npm 12+, deno, and bun
-                  block these by default; use one of these. With npm 11.16+ and yarn 2+ you can opt
-                  in. Otherwise, prioritize upgrading your package manager.
+                  attacks fire during install, not at runtime. pnpm 10+, npm 12+, yarn 4.14+, deno,
+                  and bun block these by default (yarn 2+ can also opt in); use one of these.
+                  Otherwise, prioritize upgrading your package manager.
                 </LeverItem>
                 <LeverItem>
                   <strong className="text-ink">Lock down GitHub Actions.</strong> There are too many
@@ -1633,7 +1633,7 @@ export default function SupplyChainRisk() {
                   <LeverItem>
                     <strong className="text-ink">Let releases age.</strong> Malicious versions are
                     usually pulled within hours, so holding new releases back a short while is a
-                    cheap way to reduce risk. pnpm 11+, yarn 4.12+, and deno 2.9+ do this by
+                    cheap way to reduce risk. pnpm 11+, yarn 4.15+, and deno 2.9+ do this by
                     default; use one of these. With pnpm 10.16+, npm 11.10+, and bun 1.3+ you can
                     opt in. Otherwise, prioritize upgrading your package manager. Renovate and
                     Dependabot can also be configured to delay updates.
