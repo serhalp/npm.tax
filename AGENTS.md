@@ -28,7 +28,9 @@ Interactive npm supply-chain risk visualization built with TanStack Start and de
 - **Charts**: Custom inline SVG; do not add a charting library for the current charts or visual analogies.
 - **Bundle analysis**: Sonda via the Vite plugin, enabled only for `pnpm run build:analyze`; it emits client JavaScript reports under `.sonda/`.
 - **Server route**: `src/routes/api/package-deps.ts` exposes a package lookup endpoint backed by `src/server/packageDeps.ts`, npmx, npm registry metadata, Netlify Cache API, and Netlify CDN caching.
-- **Page layout**: organised by role, not by width. One grid splits the page into a report column (verdict, ledger, package field, curve) and a control rail (lookup, sliders, notes on the default). The report therefore stays one contiguous rectangle you could screenshot, and the sliders sit beside the chart they change. The rail is sticky and scrolls internally when it outgrows the viewport. Methodology sits full-width below both.
+- **Page layout**: organised by role, not by width. One grid splits the page into a report column (verdict, ledger, package field, curve) and a control rail (share actions, lookup, sliders). The report therefore stays one contiguous rectangle you could screenshot, and the sliders sit beside the chart they change. Methodology sits full-width below both.
+- **The control rail clips**: it is sticky and scrolls internally (`overflow-y-auto`), which also makes it `overflow-x: auto`. Its controls sit flush with its edges, so anything that paints outside a box gets cut off. Focus rings need the rail's horizontal padding, and overlays must use the top layer (native popover) rather than absolute positioning. This has caused two bugs; check it when adding anything to the rail.
+- **Document caching**: the home route sets `Netlify-CDN-Cache-Control` through TanStack Router's `headers` route option (`documentCacheHeaders` in `src/lib/httpCache.ts`). The render is a pure function of the search params and Netlify sends `netlify-vary: query`, so each scenario URL caches separately at the edge and shared links keep their own OG tags.
 - **OG image route**: `src/routes/api/og.ts` generates dynamic Open Graph images from URL-backed scenarios. `src/lib/ogImage.ts` holds the pure model (absolute layout geometry, text wrapping, curve path); `src/lib/ogImageView.tsx` is the view. It renders through satori, which implements only a subset of CSS — see the conventions below before editing it.
 
 ## Key directories
@@ -45,6 +47,7 @@ src/
     api/package-deps.ts    # Server route for package dependency lookup
   server/
     packageDeps.ts         # Upstream package lookup + Cache API
+    packageDepsModel.ts    # Pure name validation, cache keys, response normalizing
     ogFonts.ts             # TTF subsets inlined into the server bundle for satori
     fonts/                 # OG-only TTFs; satori cannot read the app's woff2
   lib/
@@ -59,6 +62,9 @@ src/
 public/
   fonts/                   # Self-hosted woff2 + their OFL license texts
   favicon.svg              # Theme-adaptive icon; favicon.ico holds 16/32/48 rasters
+
+a11y.e2e.ts                # Axe scans, both themes, expanded/hovered states
+controls.e2e.ts            # Control behaviour, desktop + mobile
 ```
 
 ## Coding conventions
@@ -68,6 +74,10 @@ public/
 - SVG charts and visual analogies drawn inline in React.
 - Keep calculator math pure in `src/lib/riskModel.ts`.
 - Keep all interactive calculator state shareable through URL search params.
+- Every control's readout is also its input (`ValueField`): sliders step coarsely, so typing is the
+  only way to reach an exact figure. A held draft keeps the slider from overwriting keystrokes.
+- The code calls the unit chart the "package field"; user-facing copy calls it the "visualization".
+  Keep it that way; "field" reads as a form input to a programmer.
 - Severity colour (`moss` / `ochre` / `levy`) means good-to-bad and nothing else. Categorical
   encoding — chart series, package-field bands — uses the `series-*` tokens and must never be red
   or green, so a category is never mistaken for a verdict.
@@ -87,10 +97,33 @@ public/
 - Bump `OG_IMAGE_VERSION` in `src/lib/riskSearch.ts` whenever the OG card's appearance changes. It is the `ogv` cache-buster, and without it social platforms and the CDN keep serving the previous image.
 - Fonts are vendored, not installed. Add nothing from npm for typography: the app's woff2 live in `public/fonts/`, the OG card's TTF subsets in `src/server/fonts/`, and both families' OFL texts ship alongside.
 
+## Testing
+
+Two tiers, and the split decides where a new test goes.
+
+- **`node --test`** (`pnpm run test:unit`) covers the pure modules in `src/lib` and `src/server`
+  only: math, formatting, parsing, geometry, cache headers. No DOM, no framework. When logic in a
+  component is pure, extract it here rather than reaching for a component test.
+- **Playwright** (`pnpm run test:e2e`) covers everything that needs a browser: control behaviour in
+  `controls.e2e.ts` and axe scans in `a11y.e2e.ts`. Both run under a `desktop` and a `mobile`
+  project, because the two layouts differ structurally rather than only in width. `testMatch` globs
+  `*.e2e.ts`, so a new file needs no config beyond a `knip.config.ts` entry.
+
+There are no component tests and adding jsdom is not the answer: it has no layout engine, so it
+cannot see the bugs this UI actually has: clipped focus rings, contrast under `opacity`, or a
+popover in the top layer. Prefer extracting pure logic downwards or asserting in Playwright.
+
+Two Playwright gotchas, both of which have produced false results here:
+
+- Wait for hydration before interacting. `page.goto` resolves before React attaches, and a click
+  landing early both fails silently and leaves `open` on the DOM for React to trip over.
+- Do not `fill()` an already-focused controlled input; it races React's own value updates and
+  concatenates. Click, select all, and type instead; `controls.e2e.ts` has a helper.
+
 ## Checks
 
-- `pnpm run test`
-- `pnpm run test:a11y`
+- `pnpm run test`: unit tests, typecheck, format check, lint
+- `pnpm run test:e2e`: Playwright behaviour and accessibility, desktop and mobile
 - `pnpm run build`
 - `pnpm run build:analyze`
 - `pnpm run knip`

@@ -15,10 +15,20 @@ Run:
 
 ```bash
 pnpm run test
-pnpm run test:a11y
+pnpm run test:e2e
 pnpm run build
 pnpm run knip
 ```
+
+`test:e2e` runs the whole Playwright suite, behaviour and accessibility alike, under both a
+desktop and a mobile project.
+
+## Where tests go
+
+Pure logic (math, formatting, parsing, geometry) is unit tested with `node --test` against the
+modules in `src/lib` and `src/server`. Anything needing a browser goes in Playwright:
+`controls.e2e.ts` for behaviour, `a11y.e2e.ts` for axe. If a component grows logic worth testing,
+extract the pure part into `src/lib` rather than adding a component-test setup.
 
 ## Project notes
 
@@ -27,6 +37,7 @@ pnpm run knip
 - Keep charts and visual analogies as inline SVG; do not add a charting library unless the visualization changes substantially.
 - For first paint, theme-sensitive visuals should come from CSS classes or variables keyed off the bootstrapped `html.dark` / `html[data-theme]` state. Avoid initial SVG plot fills, grid strokes, or other visible theme colours that depend on React state after hydration.
 - Keep calculator math pure in `src/lib/riskModel.ts`; UI components should consume those helpers rather than duplicating formulas.
+- The control rail scrolls internally, which also clips it horizontally. Its controls sit flush with its edges, so focus rings depend on the rail's padding and any overlay must use the top layer (a native popover) instead of absolute positioning.
 - Package dependency lookup belongs in `src/routes/api/package-deps.ts` and `src/server/packageDeps.ts`; scenario image generation belongs in `src/routes/api/og.ts`.
 - Use runtime-appropriate relative import specifiers. Vite/TanStack-only app modules should use extensionless imports, such as `../lib/riskModel`.
 - Keep explicit `.ts` extensions in TypeScript loaded directly by `node --test`: test files and the `src/lib` or `src/server` model modules they import.

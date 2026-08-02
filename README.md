@@ -6,10 +6,11 @@ Interactive app for exploring how npm dependency count, time, and per-package co
 
 - URL-backed controls for direct dependencies, transitive dependencies, time horizon, and daily breach probability.
 - Real npm package lookup via a server route that calls npmx install-size data and the npm registry, with Netlify Cache API/CDN caching.
-- Inline SVG charts and visuals, including a package field that draws one mark per modeled package so the transitive tree is shown at true scale.
+- Inline SVG charts and visuals, including a unit chart that draws one mark per modeled package so the transitive tree is shown at true scale.
 - A named severity assessment (low / medium / high) alongside every figure, so risk level never depends on colour alone.
 - Dynamic Open Graph images for shared scenarios, rendered with the same palette, type, and numbers as the page.
 - Light/dark/system theme toggle and shareable links.
+- Every slider's readout doubles as an exact-value input, so you can type a figure instead of dragging to it.
 - Plain-language math notes for the independent Bernoulli model.
 
 ## Tech stack
@@ -22,7 +23,7 @@ Interactive app for exploring how npm dependency count, time, and per-package co
 - Netlify Vite plugin for deployment and full platform emulation in dev
 - Sonda for bundle visualization
 - Formatting with oxfmt + linting with oxlint
-- Testing with `node:test` + a11y testing with Axe Core
+- `node:test` for the pure model modules; Playwright for behaviour and Axe accessibility checks, run against desktop and mobile
 - Node.js 26
 - pnpm 11
 - knip to keep things tidy
@@ -40,13 +41,14 @@ The dev server starts at `http://localhost:3000`.
 
 ```bash
 pnpm run test
-pnpm run test:a11y
+pnpm run test:e2e
 pnpm run build
 pnpm run build:analyze
 pnpm run knip
 ```
 
 `pnpm run test` runs unit tests, typecheck, format check, and lint.
+`pnpm run test:e2e` runs the Playwright suite, behaviour and accessibility alike, under both a desktop and a mobile project.
 `pnpm run build:analyze` writes Sonda HTML and JSON reports for the client JavaScript bundle to `.sonda/`.
 CI runs the same analyze build and uploads the reports as the `sonda-bundle-analysis` artifact.
 
@@ -57,5 +59,13 @@ Each package has a daily compromise probability `p`. With `n` total modeled pack
 ```text
 P(breach) = 1 - (1 - p)^(n * d)
 ```
+
+`p` splits into two parts, which is what makes the advice actionable:
+
+```text
+p = p_breach * p_impacted
+```
+
+`p_breach` is the chance a given package is compromised on a given day, and nothing you do changes it. `p_impacted` is the chance that compromise actually reaches you, and that one you can shrink: turn off install scripts, lock down CI, let releases age.
 
 The model intentionally stays simple and assumes independent package-days. Real incidents can be correlated across packages, maintainers, and build systems, so this should be read as an exploratory estimate rather than a precise forecast.
