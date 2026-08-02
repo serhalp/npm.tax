@@ -8,6 +8,11 @@ const packageDepsLatestCacheHeaders = {
   "Netlify-CDN-Cache-Control": "public, durable, s-maxage=3600, stale-while-revalidate=86400",
 } as const;
 
+const documentCacheHeadersValue = {
+  "Cache-Control": "public, max-age=0, must-revalidate",
+  "Netlify-CDN-Cache-Control": "public, durable, s-maxage=31536000",
+} as const;
+
 const ogImageCacheHeaders = {
   "Cache-Control": "public, max-age=31536000, must-revalidate",
   "Netlify-CDN-Cache-Control": "public, durable, s-maxage=31536000, must-revalidate",
@@ -32,4 +37,8 @@ export function packageDepsCacheHeaders({
 
 export function ogCacheHeaders(): Record<string, string> {
   return { ...ogImageCacheHeaders };
+}
+
+export function documentCacheHeaders(): Record<string, string> {
+  return { ...documentCacheHeadersValue };
 }

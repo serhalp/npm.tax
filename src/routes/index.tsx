@@ -4,6 +4,7 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 import SupplyChainRisk from "../components/SupplyChainRisk";
 import { GitHubIcon } from "../components/icons";
 import { getRiskScenario, getScenarioDescription, getScenarioTitle } from "../lib/riskModel";
+import { documentCacheHeaders } from "../lib/httpCache";
 import { buildRiskScenarioUrls, parseRiskSearchRecord } from "../lib/riskSearch";
 
 const currentUrl = createIsomorphicFn()
@@ -15,6 +16,7 @@ const currentUrl = createIsomorphicFn()
 
 export const Route = createFileRoute("/")({
   validateSearch: parseRiskSearchRecord,
+  headers: () => documentCacheHeaders(),
   head: async ({ match }) => {
     const scenario = getRiskScenario(match.search);
     const title = getScenarioTitle(scenario);
