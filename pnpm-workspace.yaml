@@ -9,7 +9,7 @@ trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 1080 # 18 hours
 minimumReleaseAgeExclude:
   - esbuild@0.28.1
-  - '@opentelemetry/core@2.8.0'
+  - "@opentelemetry/core@2.8.0"
   - fast-uri@3.1.4
   - sharp@0.35.0
   - tar@7.5.21
