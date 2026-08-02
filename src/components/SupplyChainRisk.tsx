@@ -425,6 +425,67 @@ function PackageField({
   );
 }
 
+/**
+ * A control's readout, doubling as its exact-value field. Sliders step coarsely
+ * and dragging to a specific figure is tedious, so every value is also typeable.
+ *
+ * Idle it mirrors `display`; focused it shows the raw `editValue`, since a
+ * formatted string like "2yr" is not what you want to edit. A held draft is what
+ * keeps the slider from overwriting keystrokes mid-drag.
+ */
+function ValueField({
+  ariaLabel,
+  display,
+  editValue,
+  onCommit,
+}: {
+  ariaLabel: string;
+  display: string;
+  editValue: string;
+  onCommit: (raw: string) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  // Blur is what commits, so Escape has to mark the draft dead before leaving.
+  const discardRef = useRef(false);
+
+  const handleFocus = useCallback(
+    (event: React.FocusEvent<HTMLInputElement>) => {
+      setDraft(editValue);
+      event.target.select();
+    },
+    [editValue],
+  );
+
+  const handleBlur = useCallback(() => {
+    if (discardRef.current) discardRef.current = false;
+    else if (draft !== null) onCommit(draft);
+    setDraft(null);
+  }, [draft, onCommit]);
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") discardRef.current = true;
+    if (event.key === "Enter" || event.key === "Escape") event.currentTarget.blur();
+  }, []);
+
+  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setDraft(event.target.value);
+  }, []);
+
+  return (
+    <input
+      aria-label={ariaLabel}
+      type="text"
+      inputMode="decimal"
+      value={draft ?? display}
+      onFocus={handleFocus}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className="figure-num w-[8ch] border-b border-dashed border-rule-strong bg-transparent py-0.5 text-right text-base font-semibold text-ink hover:border-ink focus:border-solid focus:border-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink"
+    />
+  );
+}
+
 function Slider({
   label,
   value,
@@ -433,6 +494,7 @@ function Slider({
   step,
   onChange,
   format,
+  inputMax,
 }: {
   label: string;
   value: number;
@@ -441,6 +503,8 @@ function Slider({
   step: number;
   onChange: (v: number) => void;
   format?: (v: number) => string;
+  /** Ceiling for typed values. Omit where `max` grows to fit the value. */
+  inputMax?: number;
 }) {
   const id = useId();
   const handleChange = useCallback(
@@ -450,15 +514,28 @@ function Slider({
     [onChange],
   );
 
+  const handleCommit = useCallback(
+    (raw: string) => {
+      const parsed = Number(raw.replace(/[\s,]/g, ""));
+      if (!Number.isFinite(parsed)) return;
+      const clamped = Math.max(min, Math.round(parsed));
+      onChange(inputMax === undefined ? clamped : Math.min(inputMax, clamped));
+    },
+    [min, inputMax, onChange],
+  );
+
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3">
         <label htmlFor={id} className={EYEBROW}>
           {label}
         </label>
-        <span className="figure-num text-base font-semibold text-ink">
-          {format ? format(value) : value}
-        </span>
+        <ValueField
+          ariaLabel={`Exact ${label.toLowerCase()}`}
+          display={format ? format(value) : String(value)}
+          editValue={String(value)}
+          onCommit={handleCommit}
+        />
       </div>
       <input
         id={id}
@@ -755,7 +832,6 @@ export default function SupplyChainRisk() {
   const lookupPkgNameId = useId();
   const lookupPkgVersionId = useId();
   const dailyProbInputId = useId();
-  const exactProbInputId = useId();
 
   const { theme, setTheme } = useTheme();
   const search = useSearch({ from: "/" });
@@ -941,20 +1017,6 @@ export default function SupplyChainRisk() {
       setDailyProbExp(Number(event.target.value));
     },
     [setDailyProbExp],
-  );
-
-  const handleExactProbInputBlur = useCallback(
-    (event: React.FocusEvent<HTMLInputElement>) => {
-      handleProbInput(event.target.value);
-    },
-    [handleProbInput],
-  );
-
-  const handleExactProbInputKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === "Enter") handleProbInput(event.currentTarget.value);
-    },
-    [handleProbInput],
   );
 
   // Share the current view. Every control is reflected in the URL, so the
@@ -1290,6 +1352,8 @@ export default function SupplyChainRisk() {
                 step={1}
                 onChange={setTimePeriodDays}
                 format={formatTimeSliderValue}
+                // Unlike the counts, this range is fixed, so typed days clamp.
+                inputMax={1095}
               />
 
               <div className="flex flex-col gap-1.5">
@@ -1297,9 +1361,12 @@ export default function SupplyChainRisk() {
                   <label htmlFor={dailyProbInputId} className={EYEBROW}>
                     Daily breach prob / package
                   </label>
-                  <span className="figure-num text-base font-semibold text-ink">
-                    {dailyP.toExponential(2)}
-                  </span>
+                  <ValueField
+                    ariaLabel="Exact daily breach probability per package"
+                    display={dailyP.toExponential(2)}
+                    editValue={dailyP.toExponential(2)}
+                    onCommit={handleProbInput}
+                  />
                 </div>
                 <input
                   id={dailyProbInputId}
@@ -1316,21 +1383,6 @@ export default function SupplyChainRisk() {
                 <div className="figure-num flex justify-between text-xs text-muted">
                   <span>1e-8 (~0.00037%/yr)</span>
                   <span>1e-3 (~30.6%/yr)</span>
-                </div>
-                <div className="mt-2">
-                  <label htmlFor={exactProbInputId} className="text-xs text-muted">
-                    Or enter exact value:
-                  </label>
-                  <input
-                    id={exactProbInputId}
-                    aria-label="Exact daily breach probability per package"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder={dailyP.toExponential(2)}
-                    className={`${FIELD_INPUT} mt-1.5 md:text-xs sm:h-9`}
-                    onBlur={handleExactProbInputBlur}
-                    onKeyDown={handleExactProbInputKeyDown}
-                  />
                 </div>
               </div>
             </div>
