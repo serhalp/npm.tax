@@ -1,11 +1,5 @@
 @import "tailwindcss" source("../");
 
-/* Class-based dark mode: the `dark:` variant responds to a `.dark` class on the
-   <html> element (set by the startup script in __root.tsx and the theme toggle),
-   rather than the OS preference directly. This lets users override the system
-   default while still defaulting to it. */
-@custom-variant dark (&:where(.dark, .dark *));
-
 /* Self-hosted so the app ships no font dependencies of its own. Archivo carries
    both a weight and a width axis; width is what encodes hierarchy here. */
 @font-face {
