@@ -121,6 +121,15 @@ const CURVE_STYLE = { "--curve-length": 1400 } as React.CSSProperties;
 const END_LABEL_STYLE: React.CSSProperties = { fontStretch: "68%" };
 
 const EYEBROW = "eyebrow text-muted";
+
+/**
+ * The hover fade lives on the title, not the whole summary. Fading the summary
+ * blends its 12px muted hint toward the paper, which drops it to 3.1:1; `ink`
+ * still clears AA at 70% in both themes.
+ */
+const SUMMARY =
+  "group/summary flex cursor-pointer list-none items-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink [&::-webkit-details-marker]:hidden";
+const SUMMARY_TITLE = "transition-opacity group-hover/summary:opacity-70";
 const FIELD_INPUT =
   "h-11 w-full border border-rule-strong bg-surface px-3 font-mono text-base text-ink placeholder:text-muted focus:border-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink md:text-sm sm:h-10";
 
@@ -608,6 +617,135 @@ function LineItem({
         {value}
       </dd>
       {note && <dd className="w-full text-right text-xs text-muted sm:ml-0 sm:w-auto">{note}</dd>}
+    </div>
+  );
+}
+
+const OUTBOUND =
+  "underline decoration-rule-strong underline-offset-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+
+/** The conventional "opens elsewhere" glyph. Decorative: the link text carries the meaning. */
+function ExternalArrow() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 10 10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="ml-[0.15em] inline-block h-[0.65em] w-[0.65em] shrink-0 align-baseline"
+    >
+      <path d="M3 7 7 3" />
+      <path d="M3.6 3H7v3.4" />
+    </svg>
+  );
+}
+
+function Outbound({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${OUTBOUND} whitespace-nowrap`}
+    >
+      {children}
+      <ExternalArrow />
+    </a>
+  );
+}
+
+/** Inline square matching a mark in the package field, dropped into prose. */
+function Mark() {
+  return (
+    <span
+      aria-hidden="true"
+      className="mx-0.5 inline-block h-[0.6em] w-[0.6em] translate-y-[0.05em] bg-ink-faint align-middle"
+    />
+  );
+}
+
+/** Plus-becomes-minus disclosure marker for a native details/summary accordion. */
+function DisclosureMark() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-muted">
+      <rect x="1" y="7" width="14" height="2" fill="currentColor" />
+      <rect
+        x="7"
+        y="1"
+        width="2"
+        height="14"
+        fill="currentColor"
+        className="origin-center motion-safe:transition-transform motion-safe:duration-200 group-open:rotate-90"
+      />
+    </svg>
+  );
+}
+
+/** One action item, bulleted with the same mark used in the field above. */
+function LeverItem({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex gap-2.5">
+      <span
+        aria-hidden="true"
+        className="mt-[0.45em] h-[0.55em] w-[0.55em] shrink-0 bg-ink-faint"
+      />
+      <span>{children}</span>
+    </li>
+  );
+}
+
+/**
+ * Colour per model input, tying each summary line to the column that reduces it
+ * and to the variable in the formula. Decorative only: every use is labelled.
+ */
+const LEVER_COLOR = {
+  n: "text-lever-n",
+  p: "text-lever-p",
+  d: "text-lever-d",
+} as const;
+
+/**
+ * `p` splits into how often a package is compromised at all and how often that
+ * compromise reaches you. Only the second half is a lever, so only it carries
+ * the lever colour.
+ */
+function PBreach({ mono = false }: { mono?: boolean }) {
+  const Tag = mono ? "span" : "em";
+  return (
+    <Tag className="whitespace-nowrap">
+      p<sub>breach</sub>
+    </Tag>
+  );
+}
+
+function PImpacted({ mono = false }: { mono?: boolean }) {
+  const Tag = mono ? "span" : "em";
+  return (
+    <Tag className={`whitespace-nowrap ${LEVER_COLOR.p}`}>
+      p<sub>impacted</sub>
+    </Tag>
+  );
+}
+
+/** One lever of the model, colour-coded to the input it moves. */
+function Lever({
+  title,
+  input,
+  children,
+  className,
+}: {
+  title: string;
+  input: keyof typeof LEVER_COLOR;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <h3 className={`statement text-lg ${LEVER_COLOR[input]}`}>{title}</h3>
+      <div className="mt-3 space-y-2.5 text-base leading-6 text-muted">{children}</div>
     </div>
   );
 }
@@ -1213,33 +1351,198 @@ export default function SupplyChainRisk() {
         </aside>
       </div>
 
-      <div className="border-t-2 border-ink pt-6">
-        <section className="border-t border-rule pt-6">
-          <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_270px]">
-            <div>
-              <h2 className="statement text-xl text-ink">Model notes</h2>
-              <div className="mt-3 max-w-3xl space-y-2.5 text-sm leading-6 text-muted">
-                <p>
-                  Each package has a daily breach probability <em>p</em>. With <em>n</em> total
-                  modeled packages, including {rootLabel}, the chance that none are breached on a
-                  given day is <code>(1 - p)^n</code>.
+      <div className="border-t border-rule pt-8">
+        <section>
+          <details className="group">
+            <summary className={SUMMARY}>
+              <DisclosureMark />
+              <span className="flex items-baseline gap-2">
+                <h2 className={`statement text-xl text-ink ${SUMMARY_TITLE}`}>Model notes</h2>
+                <span className="text-xs text-muted group-open:hidden">Click to expand</span>
+                <span className="hidden text-xs text-muted group-open:inline">
+                  Click to collapse
+                </span>
+              </span>
+            </summary>
+            <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1fr)_270px]">
+              <div>
+                <div className="max-w-3xl space-y-2.5 text-base leading-6 text-muted">
+                  <p>
+                    Each package has a daily breach probability <em>p</em>. With{" "}
+                    <em className={LEVER_COLOR.n}>n</em> total modeled packages, including{" "}
+                    {rootLabel}, the chance that none are breached on a given day is{" "}
+                    <code>
+                      (1 - p)^
+                      <span className={LEVER_COLOR.n}>n</span>
+                    </code>
+                    .
+                  </p>
+                  <p>
+                    Over <em className={LEVER_COLOR.d}>d</em> days, the chance of staying
+                    breach-free is{" "}
+                    <code>
+                      (1 - p)^(
+                      <span className={LEVER_COLOR.n}>n</span> x{" "}
+                      <span className={LEVER_COLOR.d}>d</span>)
+                    </code>
+                    . The model treats package-days as independent events, a flawed but useful
+                    simplification.
+                  </p>
+                  <p>
+                    <em>p</em> is really two things multiplied: <PBreach />, the likelihood that a
+                    package gets compromised, and <PImpacted />, the likelihood that a compromise
+                    affects <strong>you</strong> directly. You can only control the latter.
+                  </p>
+                </div>
+              </div>
+              <div className="border-t border-rule pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+                <p className={EYEBROW}>Formula</p>
+                <p className="figure-num mt-3 text-sm leading-6 font-semibold text-ink">
+                  <span className="whitespace-nowrap">P(breach) =</span>{" "}
+                  <span className="whitespace-nowrap">
+                    1 - (1 - p)
+                    <sup>
+                      <span className={LEVER_COLOR.n}>n</span>&nbsp;x&nbsp;
+                      <span className={LEVER_COLOR.d}>d</span>
+                    </sup>
+                  </span>
                 </p>
-                <p>
-                  Over <em>d</em> days, the chance of staying breach-free is{" "}
-                  <code>(1 - p)^(n x d)</code>. The model treats package-days as independent, so use
-                  it as directional evidence rather than a forecast.
+                <p className="figure-num mt-2 text-sm leading-6 font-semibold text-ink">
+                  p = <PBreach mono />
+                  {" x "}
+                  <PImpacted mono />
                 </p>
               </div>
             </div>
-            <div className="border-t border-rule pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6">
-              <p className={EYEBROW}>Formula</p>
-              <p className="figure-num mt-3 text-sm leading-6 font-semibold text-ink">
-                <span className="whitespace-nowrap">P(breach) =</span>{" "}
-                <span className="whitespace-nowrap">
-                  1 - (1 - p)<sup>n&nbsp;x&nbsp;d</sup>
-                </span>
+          </details>
+        </section>
+
+        <section className="mt-10 border-t-2 border-ink pt-8">
+          <h2 className="statement text-xl text-ink">What can I do about it?</h2>
+          <p className="mt-2 max-w-3xl text-base leading-6 text-muted">
+            You can&apos;t prevent breaches (decrease <PBreach />
+            ). Focus on what you can control:
+          </p>
+          <ul className="mt-3 max-w-3xl list-none space-y-2 text-base leading-6 text-muted">
+            <LeverItem>
+              <span className={LEVER_COLOR.n}>Reduce the surface area</span> by removing
+              dependencies (decrease <em className={LEVER_COLOR.n}>n</em>).
+            </LeverItem>
+            <LeverItem>
+              <span className={LEVER_COLOR.p}>Reduce the blast radius</span> by defending against
+              common breach patterns (decrease <PImpacted />
+              ).
+            </LeverItem>
+            <LeverItem>
+              <span className={LEVER_COLOR.d}>Reduce the time window</span> you stay exposed by
+              acting sooner (decrease <em className={LEVER_COLOR.d}>d</em>).
+            </LeverItem>
+          </ul>
+
+          <div className="mt-8 grid gap-8 lg:grid-cols-3 lg:gap-10">
+            <Lever title="Fewer packages" input="n">
+              <p>
+                Every <Mark /> in the visualization is a package that can be compromised, and most
+                of them are below the iceberg.
               </p>
-            </div>
+              <ul className="list-none space-y-3">
+                <LeverItem>
+                  <strong className="text-ink">Remove what you don&apos;t use.</strong>{" "}
+                  <Outbound href="https://knip.dev">knip</Outbound> finds and removes unused
+                  dependencies (and more) adding dead weight and risk. Remove cruft now. Run knip in
+                  CI to keep it that way.{" "}
+                  <Outbound href="https://github.com/sponsors/webpro">Donate</Outbound> to sustain
+                  it.
+                </LeverItem>
+                <LeverItem>
+                  <strong className="text-ink">Slim what you do use.</strong> A dependency that
+                  drags in a huge tree adds more risk than one that doesn&apos;t.{" "}
+                  <Outbound href="https://e18e.dev">e18e</Outbound> works with maintainers to cut
+                  down those trees and foster lean alternatives. Check out their docs, linter, CI
+                  reports, CLI, MCP, and more. Upgrade regularly to benefit for free.{" "}
+                  <Outbound href="https://opencollective.com/e18e">Donate</Outbound> to sustain the
+                  work.
+                </LeverItem>
+              </ul>
+            </Lever>
+
+            <Lever
+              title="Fewer open doors"
+              input="p"
+              className="border-t border-rule pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10"
+            >
+              <p>A compromised package only matters if it can actually reach you and do damage.</p>
+              <ul className="list-none space-y-3">
+                <LeverItem>
+                  <strong className="text-ink">Turn off install scripts.</strong> Most recent npm
+                  attacks fire during install, not at runtime. pnpm 10+, npm 12+, deno, and bun
+                  block these by default; use one of these. With npm 11.16+ and yarn 2+ you can opt
+                  in. Otherwise, prioritize upgrading your package manager.
+                </LeverItem>
+                <LeverItem>
+                  <strong className="text-ink">Lock down GitHub Actions.</strong> There are too many
+                  footguns to list here, and that's the point.{" "}
+                  <Outbound href="https://zizmor.sh">zizmor</Outbound> performs static analysis of
+                  your GitHub Actions workflows and bans insecure usage. Run it once and fix what it
+                  flags. Add it to CI to keep it that way.{" "}
+                  <Outbound href="https://github.com/sponsors/woodruffw">Donate</Outbound> to
+                  sustain it.
+                </LeverItem>
+              </ul>
+              <details className="group mt-3">
+                <summary className={SUMMARY}>
+                  <DisclosureMark />
+                  <span className="flex items-baseline gap-2">
+                    <span className={`font-semibold text-ink ${SUMMARY_TITLE}`}>
+                      Two more actions
+                    </span>
+                    <span className="text-xs text-muted group-open:hidden">Click to expand</span>
+                    <span className="hidden text-xs text-muted group-open:inline">
+                      Click to collapse
+                    </span>
+                  </span>
+                </summary>
+                <ul className="mt-3 list-none space-y-3">
+                  <LeverItem>
+                    <strong className="text-ink">Let releases age.</strong> Malicious versions are
+                    usually pulled within hours, so holding new releases back a short while is a
+                    cheap way to reduce risk. pnpm 11+, yarn 4.12+, and deno 2.9+ do this by
+                    default; use one of these. With pnpm 10.16+, npm 11.10+, and bun 1.3+ you can
+                    opt in. Otherwise, prioritize upgrading your package manager. Renovate and
+                    Dependabot can also be configured to delay updates.
+                  </LeverItem>
+                  <LeverItem>
+                    <strong className="text-ink">Block flagged packages ASAP.</strong> Security
+                    researchers like Socket and Snyk typically flag malicious releases within{" "}
+                    <strong>5 minutes</strong>. Socket{" "}
+                    <Outbound href="https://docs.socket.dev/docs/socket-firewall-free">
+                      provides a free CLI
+                    </Outbound>{" "}
+                    that wraps your package manager and blocks flagged packages at install time. Use
+                    it in CI and locally.
+                  </LeverItem>
+                </ul>
+              </details>
+            </Lever>
+
+            <Lever
+              title="Act sooner"
+              input="d"
+              className="border-t border-rule pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10"
+            >
+              <p>
+                You decide how much time you spend at your current risk level. Every day adds
+                cumulative risk.
+              </p>
+              <ul className="list-none space-y-3">
+                <LeverItem>
+                  <strong className="text-ink">Take these actions today.</strong> Everything in the
+                  other two columns only starts paying off the day you do it. Putting them off
+                  doesn&apos;t hold your risk steady; it keeps accruing for every day of{" "}
+                  <em className={LEVER_COLOR.d}>d</em> you spend delaying.
+                </LeverItem>
+              </ul>
+            </Lever>
           </div>
         </section>
       </div>

@@ -33,6 +33,26 @@ for (const theme of ["light", "dark"] as const) {
     await page.goto("/");
     await expectNoAccessibilityViolations(page);
   });
+
+  // Collapsed disclosures hide their contents from axe, and the summaries only
+  // fail contrast while hovered, so neither is covered by the scan above.
+  test(`expanded and hovered disclosures have no violations in ${theme} mode`, async ({ page }) => {
+    await page.addInitScript((selectedTheme) => {
+      localStorage.setItem("theme", selectedTheme);
+    }, theme);
+
+    await page.goto("/");
+    // Toggling before hydration leaves `open` on the DOM for React to trip over.
+    await page.waitForLoadState("networkidle");
+    const summaries = page.locator("details > summary");
+    expect(await summaries.count()).toBeGreaterThan(0);
+    await summaries.evaluateAll((elements) => {
+      for (const element of elements) (element as HTMLElement).click();
+    });
+    await summaries.last().hover();
+
+    await expectNoAccessibilityViolations(page);
+  });
 }
 
 test("home page controls expose accessible names", async ({ page }) => {

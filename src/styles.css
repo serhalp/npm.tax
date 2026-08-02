@@ -57,6 +57,14 @@
   --series-a-wash: #123f6817;
   --series-b: #7a4cb0;
   --series-c: #57657a;
+
+  /* Ties each model input to the column that reduces it. Purely a wayfinding
+     cue: every use is already labelled in text, so nothing depends on seeing
+     the hue. Teal, magenta and red-brown clear AA on both grounds and stay
+     apart under deuteranopia, protanopia and tritanopia. */
+  --lever-n: #0d6a72;
+  --lever-p: #a02f77;
+  --lever-d: #6f3a18;
 }
 
 .dark {
@@ -76,6 +84,10 @@
   --series-a-wash: #a6cdf71f;
   --series-b: #b18ee0;
   --series-c: #8296ad;
+
+  --lever-n: #63cdd8;
+  --lever-p: #f096cf;
+  --lever-d: #d8a07c;
 }
 
 @theme inline {
@@ -92,6 +104,9 @@
   --color-series-a: var(--series-a);
   --color-series-b: var(--series-b);
   --color-series-c: var(--series-c);
+  --color-lever-n: var(--lever-n);
+  --color-lever-p: var(--lever-p);
+  --color-lever-d: var(--lever-d);
 
   --font-sans: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
