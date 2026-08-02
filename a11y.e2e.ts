@@ -53,6 +53,22 @@ for (const theme of ["light", "dark"] as const) {
 
     await expectNoAccessibilityViolations(page);
   });
+
+  // The popover is closed until interacted with, so axe never sees its contents
+  // on the default scan.
+  test(`the defaults popover has no violations in ${theme} mode`, async ({ page }) => {
+    await page.addInitScript((selectedTheme) => {
+      localStorage.setItem("theme", selectedTheme);
+    }, theme);
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const trigger = page.getByRole("button", { name: "Why these defaults?" });
+    await trigger.focus();
+    await expect(page.locator("[popover]")).toBeVisible();
+
+    await expectNoAccessibilityViolations(page);
+  });
 }
 
 test("home page controls expose accessible names", async ({ page }) => {

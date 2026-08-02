@@ -782,7 +782,8 @@ function DefaultsHint() {
           <em>Pinning Is Futile</em>
         </a>
         : a median GitHub npm project has 23 direct and 848 transitive dependencies when development
-        dependencies are included. The daily per-package probability is still a scenario assumption.
+        dependencies are included. The daily per-package probability was pulled entirely out of my
+        hat.
       </div>
     </>
   );

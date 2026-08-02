@@ -17,10 +17,17 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
+  // The two layouts are structurally different, not just narrower: the rail
+  // becomes a sticky scrolling column, the chart swaps viewBoxes, and hover
+  // stops existing. Both need exercising.
   projects: [
     {
-      name: "chromium",
+      name: "desktop",
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 7"] },
     },
   ],
 });
