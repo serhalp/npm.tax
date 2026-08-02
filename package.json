@@ -11,9 +11,9 @@
     "knip": "knip",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "test": "pnpm run test:unit && pnpm run typecheck && pnpm run format:check && pnpm run lint",
+    "test": "pnpm run typecheck && pnpm run format:check && pnpm run lint && pnpm run test:unit && pnpm run test:e2e",
     "test:unit": "node --test",
-    "test:a11y": "playwright test",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

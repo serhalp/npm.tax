@@ -1,4 +1,4 @@
-name: ♿ A11y
+name: 🎭 E2E
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  a11y:
+  e2e:
     runs-on: ubuntu-24.04-arm
 
     steps:
@@ -32,10 +32,10 @@ jobs:
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps --only-shell chromium
 
-      - run: pnpm run test:a11y
+      - run: pnpm run test:e2e
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: playwright-a11y-results
+          name: playwright-results
           path: test-results/
