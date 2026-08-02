@@ -473,17 +473,20 @@ function ValueField({
     setDraft(event.target.value);
   }, []);
 
+  const shown = draft ?? display;
+
   return (
     <input
       aria-label={ariaLabel}
       type="text"
       inputMode="decimal"
-      value={draft ?? display}
+      value={shown}
+      size={Math.max(3, shown.length)}
       onFocus={handleFocus}
       onChange={handleChange}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      className="figure-num w-[8ch] border-b border-dashed border-rule-strong bg-transparent py-0.5 text-right text-base font-semibold text-ink hover:border-ink focus:border-solid focus:border-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink"
+      className="figure-num -mr-1.5 border-b border-dashed border-rule-strong bg-transparent px-1.5 py-1 text-right text-base font-semibold text-ink hover:border-ink focus:border-solid focus:border-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-ink"
     />
   );
 }
