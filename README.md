@@ -2,6 +2,8 @@
 
 Interactive app for exploring how npm dependency count, time, and per-package compromise probability combine into cumulative supply-chain risk.
 
+<img width="1317" height="1179" alt="Screenshot showing an example report from npm.tax for nuxt version 4.5.1. It has a 40.54% modeled chance of at least one package compromise in 2 years, given its 512 total packages and a 1.41e-6 daily breach probability per package. The expected time to breach is 3.8 years. A graph shows cumulative risk over time. A field visualization shows each package as a small square. A side panel shows control inputs to tune the model interactively." src="https://github.com/user-attachments/assets/f2d6b2e8-197c-429e-ba3c-f296744d919a" />
+
 ## Features
 
 - URL-backed controls for direct dependencies, transitive dependencies, time horizon, and daily breach probability.
@@ -15,8 +17,8 @@ Interactive app for exploring how npm dependency count, time, and per-package co
 
 ## Tech stack
 
-- TanStack Start + TanStack Router + Vite 8
-- React 19 + TypeScript strict mode
+- TypeScript 7
+- TanStack Start + TanStack Router + Vite 8 + React 19
 - Tailwind CSS v4, with semantic design tokens that flip between light and dark
 - Self-hosted Archivo and IBM Plex Mono; no font packages, no webfont CDN
 - Netlify Cache API for package lookup responses
