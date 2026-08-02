@@ -1151,7 +1151,10 @@ export default function SupplyChainRisk() {
           </div>
         </div>
 
-        <aside className="space-y-9 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-4rem)] lg:self-start lg:overflow-y-auto">
+        {/* `overflow-y-auto` also clips horizontally, and the rail's controls sit
+            flush with its edges, so the padding keeps focus rings from being cut
+            off. The negative margin keeps the content aligned. */}
+        <aside className="space-y-9 lg:sticky lg:top-8 lg:-mx-2 lg:max-h-[calc(100dvh-4rem)] lg:self-start lg:overflow-y-auto lg:px-2">
           {/* Sharing the report is the goal of the tool, so the actions sit at
               the top of the rail rather than buried in the report body. */}
           <div className="grid grid-cols-2 gap-2">
