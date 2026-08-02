@@ -13,6 +13,7 @@
     "lint:fix": "oxlint --fix .",
     "test": "pnpm run typecheck && pnpm run format:check && pnpm run lint && pnpm run test:unit && pnpm run test:e2e",
     "test:unit": "node --test",
+    "test:unit:coverage": "node --test --experimental-test-coverage --test-coverage-include='src/**'",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },
