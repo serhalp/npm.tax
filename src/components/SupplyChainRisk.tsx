@@ -702,6 +702,92 @@ function LineItem({
 const OUTBOUND =
   "underline decoration-rule-strong underline-offset-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 
+/**
+ * Explains where the default counts come from, shown only until the reader
+ * changes something — past that point they are no longer the defaults.
+ *
+ * Uses the native popover API rather than an absolutely-positioned div: the rail
+ * scrolls, so anything positioned inside it gets clipped. The top layer escapes
+ * that, and brings Escape and light-dismiss with it. Hover alone would strand
+ * keyboard and touch users, so click and focus open it too.
+ */
+function DefaultsHint() {
+  const id = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const place = useCallback(() => {
+    const trigger = triggerRef.current;
+    const popover = popoverRef.current;
+    if (!trigger || !popover) return;
+    const t = trigger.getBoundingClientRect();
+    // Prefer below-left of the trigger, then nudge back inside the viewport.
+    const width = popover.offsetWidth;
+    const left = Math.max(8, Math.min(t.left, window.innerWidth - width - 8));
+    popover.style.left = `${left}px`;
+    popover.style.top = `${t.bottom + 6}px`;
+  }, []);
+
+  const open = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    const popover = popoverRef.current;
+    if (!popover || popover.matches(":popover-open")) return;
+    popover.showPopover();
+    place();
+  }, [place]);
+
+  // Delayed so the pointer can travel from the trigger into the popover to
+  // reach the link inside it.
+  const scheduleClose = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => popoverRef.current?.hidePopover(), 180);
+  }, []);
+
+  useEffect(() => () => void (closeTimer.current && clearTimeout(closeTimer.current)), []);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        // Deliberately not `popoverTarget`: its native click-to-toggle fires
+        // after the focus a tap also produces, so the two cancel out and touch
+        // users see nothing. Opening explicitly is idempotent.
+        aria-details={id}
+        onMouseEnter={open}
+        onMouseLeave={scheduleClose}
+        onFocus={open}
+        onBlur={scheduleClose}
+        onClick={open}
+        className="shrink-0 text-xs whitespace-nowrap text-muted underline decoration-dotted decoration-rule-strong underline-offset-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        Why these defaults?
+      </button>
+      <div
+        ref={popoverRef}
+        id={id}
+        popover="auto"
+        onMouseEnter={open}
+        onMouseLeave={scheduleClose}
+        className="m-0 max-w-[min(22rem,calc(100vw-1rem))] border border-rule-strong bg-surface p-3 text-xs leading-5 text-muted shadow-lg"
+      >
+        Default dependency counts use Table 2 from{" "}
+        <a
+          href="https://www.cs.cmu.edu/afs/cs.cmu.edu/Web/People/ckaestne/pdf/fse25.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={OUTBOUND}
+        >
+          <em>Pinning Is Futile</em>
+        </a>
+        : a median GitHub npm project has 23 direct and 848 transitive dependencies when development
+        dependencies are included. The daily per-package probability is still a scenario assumption.
+      </div>
+    </>
+  );
+}
+
 /** The conventional "opens elsewhere" glyph. Decorative: the link text carries the meaning. */
 function ExternalArrow() {
   return (
@@ -1250,10 +1336,6 @@ export default function SupplyChainRisk() {
           </div>
           <section>
             <h2 className="statement text-xl text-ink">Look up a real package&apos;s risk</h2>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Pull dependency counts from npm and npmx, then use them as the starting point for the
-              scenario.
-            </p>
             <div className="mt-4 flex flex-col gap-2">
               <label htmlFor={lookupPkgNameId} className="sr-only">
                 Package name
@@ -1326,7 +1408,10 @@ export default function SupplyChainRisk() {
           </section>
 
           <section>
-            <h2 className="statement text-xl text-ink">Tune the model</h2>
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="statement text-xl text-ink">Tune the model</h2>
+              {!scenario.hasExplicitNumbers && <DefaultsHint />}
+            </div>
             <div className="mt-5 space-y-6">
               <Slider
                 label="Direct dependencies"
@@ -1385,23 +1470,6 @@ export default function SupplyChainRisk() {
                   <span>1e-3 (~30.6%/yr)</span>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-6 border-t border-rule pt-4 text-xs leading-5 text-muted">
-              <p>
-                Default dependency counts use Table 2 from{" "}
-                <a
-                  href="https://www.cs.cmu.edu/afs/cs.cmu.edu/Web/People/ckaestne/pdf/fse25.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline decoration-rule-strong underline-offset-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-                >
-                  <em>Pinning Is Futile</em>
-                </a>
-                : a median GitHub npm project has 23 direct and 848 transitive dependencies when
-                development dependencies are included. The daily per-package probability is still a
-                scenario assumption.
-              </p>
             </div>
           </section>
         </aside>
