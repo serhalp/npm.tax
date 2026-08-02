@@ -69,8 +69,8 @@ describe("package field geometry", () => {
   test("lays marks out as a band inside the fixed viewBox width", () => {
     const field = getPackageFieldGeometry(1, 23, 848);
 
-    assert.equal(field.cols, 57);
-    assert.equal(field.rows, 16);
+    assert.equal(field.cols, 65);
+    assert.equal(field.rows, 14);
     assert.equal(field.width, FIELD_SIZE);
     assert.ok(field.cols * field.rows >= field.totalMarks);
     assert.ok(field.cell < field.pitch, "marks must leave a gutter between them");

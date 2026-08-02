@@ -410,7 +410,7 @@ function PackageField({
         <path d={field.selfPath} fill="var(--ink)" />
       </svg>
 
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t border-rule pt-3">
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-8 gap-y-2">
         <dl className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
           <FieldLegendItem swatch="bg-ink" label="Self" value={selfCount} />
           <FieldLegendItem swatch="bg-series-b" label="Direct deps" value={directDeps} />
@@ -1270,11 +1270,11 @@ export default function SupplyChainRisk() {
             />
           </dl>
 
-          <div className="mt-8">
+          <div className="mt-5">
             <PackageField directDeps={directDeps} transitiveDeps={transitiveDeps} />
           </div>
 
-          <div className="mt-10 border-t border-rule pt-8">
+          <div className="mt-5 border-t border-rule pt-5">
             <section>
               <div className="flex flex-wrap items-baseline justify-start gap-x-4 gap-y-1">
                 <h2 className="statement text-xl text-ink">Cumulative breach probability</h2>

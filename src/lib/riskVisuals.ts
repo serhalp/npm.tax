@@ -5,9 +5,11 @@ export const FIELD_SIZE = 900;
 
 /**
  * Target width-to-height ratio for the field. It sits full-width under the
- * verdict, so it reads as a band of marks rather than a square block.
+ * verdict, so it reads as a band of marks rather than a square block, and stays
+ * shallow enough to leave the curve below it on screen. Only the page uses this
+ * default; the OG card passes its own, wider ratio.
  */
-export const FIELD_ASPECT = 3.6;
+export const FIELD_ASPECT = 4.8;
 
 /**
  * Upper bound on drawn marks. Past this the field switches to a stated scale
