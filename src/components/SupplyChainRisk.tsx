@@ -9,6 +9,7 @@ import {
   formatDays,
   formatPackageCount,
   formatProb,
+  formatProbFixed2,
   formatTimeSliderValue,
   getRiskScenario,
   MODELED_ROOT_PACKAGE_COUNT,
@@ -1006,7 +1007,7 @@ export default function SupplyChainRisk() {
     const all = build(totalDeps);
     const direct = build(directBaselineDeps);
     const half = build(halfTransitiveDeps);
-    const last = (d: { x: number; y: number }[]) => formatProb(d.at(-1)?.y ?? 0);
+    const last = (d: { x: number; y: number }[]) => formatProbFixed2(d.at(-1)?.y ?? 0);
 
     return [
       {

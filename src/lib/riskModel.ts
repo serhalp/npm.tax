@@ -51,6 +51,14 @@ export function formatProb(p: number): string {
   return "<0.000001%";
 }
 
+/** Always two decimal places, for contexts that need consistent column width (e.g. the chart legend). */
+export function formatProbFixed2(p: number): string {
+  if (p >= 0.9999) return ">99.99%";
+  const percent = p * 100;
+  if (percent > 0 && percent < 0.01) return "<0.01%";
+  return `${percent.toFixed(2)}%`;
+}
+
 function roundedValue(value: number, maxFractionDigits: number): number {
   const scale = 10 ** maxFractionDigits;
   return Math.round(value * scale) / scale;
