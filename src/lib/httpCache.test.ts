@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import {
+  documentCacheHeaders,
   ogCacheHeaders,
   packageDepsCacheHeaders,
   packageDepsLookupCacheHeader,
@@ -28,6 +29,15 @@ describe("HTTP cache headers", () => {
   test("reports lookup cache hits and misses", () => {
     assert.equal(packageDepsLookupCacheHeader(true), "lookup-hit");
     assert.equal(packageDepsLookupCacheHeader(false), "miss");
+  });
+
+  test("lets the edge hold the document while the browser revalidates", () => {
+    // The render is a pure function of the search params, so only a deploy can
+    // change it; the browser must recheck so a deploy is picked up at once.
+    assert.deepEqual(documentCacheHeaders(), {
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Netlify-CDN-Cache-Control": "public, durable, s-maxage=31536000",
+    });
   });
 
   test("uses revalidating browser headers and durable CDN headers for generated OG images", () => {

@@ -12,6 +12,7 @@ import {
   formatModeledPackageCount,
   formatPackageCount,
   formatProb,
+  formatProbFixed2,
   formatTimeSliderValue,
   getPackageRef,
   getRiskScenario,
@@ -218,5 +219,19 @@ describe("parseProbabilityExponent", () => {
   test("rejects unparseable and empty input", () => {
     assert.equal(parseProbabilityExponent("banana"), null);
     assert.equal(parseProbabilityExponent(""), null);
+  });
+});
+
+describe("formatProbFixed2", () => {
+  test("always keeps two decimal places so columns stay aligned", () => {
+    assert.equal(formatProbFixed2(0.5), "50.00%");
+    assert.equal(formatProbFixed2(0.3621), "36.21%");
+    assert.equal(formatProbFixed2(0), "0.00%");
+  });
+
+  test("clamps the ends rather than rendering meaningless precision", () => {
+    assert.equal(formatProbFixed2(0.99995), ">99.99%");
+    assert.equal(formatProbFixed2(1), ">99.99%");
+    assert.equal(formatProbFixed2(0.00000001), "<0.01%");
   });
 });
