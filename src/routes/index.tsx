@@ -47,7 +47,7 @@ function Home() {
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink sm:px-6 lg:py-10">
       <SupplyChainRisk />
-      <footer className="mx-auto mt-4 flex max-w-7xl items-center justify-between gap-4 border-t border-rule pt-5 text-sm leading-6 text-muted">
+      <footer className="mx-auto mt-4 flex max-w-7xl items-center justify-between gap-4 border-t border-rule pt-5 text-base leading-6 text-muted">
         <p>
           No affiliation or endorsement by npm, Inc. Made by{" "}
           <a

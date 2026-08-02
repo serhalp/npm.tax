@@ -407,7 +407,7 @@ function PackageField({
           <FieldLegendItem swatch="bg-ink-faint" label="Transitive deps" value={transitiveDeps} />
         </dl>
 
-        <p className="text-sm leading-6 text-muted">
+        <p className="text-base leading-6 text-muted">
           {field.packagesPerMark > 1 && (
             <>One mark stands for {field.packagesPerMark.toLocaleString()} packages. </>
           )}
