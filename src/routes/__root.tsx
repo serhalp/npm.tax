@@ -47,6 +47,13 @@ export const Route = createRootRoute({
         href: "/fonts/plex-mono-600-latin.woff2",
         crossOrigin: "anonymous",
       },
+      {
+        rel: "preload",
+        as: "font",
+        type: "font/woff2",
+        href: "/fonts/plex-mono-400-latin.woff2",
+        crossOrigin: "anonymous",
+      },
       // The SVG follows the OS theme and is preferred where supported; the .ico
       // carries hand-tuned 16/32/48 rasters for everything else.
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
