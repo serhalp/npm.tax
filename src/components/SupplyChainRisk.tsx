@@ -1336,6 +1336,73 @@ export default function SupplyChainRisk() {
               Share
             </button>
           </div>
+
+          <section>
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="statement text-xl text-ink">Tune the model</h2>
+              {!scenario.hasExplicitNumbers && <DefaultsHint />}
+            </div>
+            <div className="mt-5 space-y-6">
+              <Slider
+                label="Direct dependencies"
+                value={directDeps}
+                min={0}
+                max={directSliderMax}
+                step={1}
+                onChange={setDirectDeps}
+              />
+              <Slider
+                label="Transitive dependencies"
+                value={transitiveDeps}
+                min={0}
+                max={transitiveSliderMax}
+                step={1}
+                onChange={setTransitiveDeps}
+              />
+              <Slider
+                label="Time period"
+                value={timePeriodDays}
+                min={1}
+                max={1095}
+                step={1}
+                onChange={setTimePeriodDays}
+                format={formatTimeSliderValue}
+                // Unlike the counts, this range is fixed, so typed days clamp.
+                inputMax={1095}
+              />
+
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <label htmlFor={dailyProbInputId} className={EYEBROW}>
+                    Daily breach prob / package
+                  </label>
+                  <ValueField
+                    ariaLabel="Exact daily breach probability per package"
+                    display={dailyP.toExponential(2)}
+                    editValue={dailyP.toExponential(2)}
+                    onCommit={handleProbInput}
+                  />
+                </div>
+                <input
+                  id={dailyProbInputId}
+                  aria-label="Daily breach probability per package"
+                  aria-valuetext={dailyP.toExponential(2)}
+                  type="range"
+                  min={-8}
+                  max={-3}
+                  step={0.05}
+                  value={dailyProbExp}
+                  onChange={handleDailyProbExpChange}
+                  className="h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink sm:h-7"
+                />
+                <div className="figure-num flex justify-between text-xs text-muted">
+                  <span>1e-8 (~0.00037%/yr)</span>
+                  <span>1e-3 (~30.6%/yr)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section>
             <h2 className="statement text-xl text-ink">Look up a real package&apos;s risk</h2>
             <div className="mt-4 flex flex-col gap-2">
@@ -1407,72 +1474,6 @@ export default function SupplyChainRisk() {
                 </div>
               )}
             </output>
-          </section>
-
-          <section>
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="statement text-xl text-ink">Tune the model</h2>
-              {!scenario.hasExplicitNumbers && <DefaultsHint />}
-            </div>
-            <div className="mt-5 space-y-6">
-              <Slider
-                label="Direct dependencies"
-                value={directDeps}
-                min={0}
-                max={directSliderMax}
-                step={1}
-                onChange={setDirectDeps}
-              />
-              <Slider
-                label="Transitive dependencies"
-                value={transitiveDeps}
-                min={0}
-                max={transitiveSliderMax}
-                step={1}
-                onChange={setTransitiveDeps}
-              />
-              <Slider
-                label="Time period"
-                value={timePeriodDays}
-                min={1}
-                max={1095}
-                step={1}
-                onChange={setTimePeriodDays}
-                format={formatTimeSliderValue}
-                // Unlike the counts, this range is fixed, so typed days clamp.
-                inputMax={1095}
-              />
-
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <label htmlFor={dailyProbInputId} className={EYEBROW}>
-                    Daily breach prob / package
-                  </label>
-                  <ValueField
-                    ariaLabel="Exact daily breach probability per package"
-                    display={dailyP.toExponential(2)}
-                    editValue={dailyP.toExponential(2)}
-                    onCommit={handleProbInput}
-                  />
-                </div>
-                <input
-                  id={dailyProbInputId}
-                  aria-label="Daily breach probability per package"
-                  aria-valuetext={dailyP.toExponential(2)}
-                  type="range"
-                  min={-8}
-                  max={-3}
-                  step={0.05}
-                  value={dailyProbExp}
-                  onChange={handleDailyProbExpChange}
-                  className="h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink sm:h-7"
-                />
-                <div className="figure-num flex justify-between text-xs text-muted">
-                  <span>1e-8 (~0.00037%/yr)</span>
-                  <span>1e-3 (~30.6%/yr)</span>
-                </div>
-              </div>
-            </div>
           </section>
         </aside>
       </div>
