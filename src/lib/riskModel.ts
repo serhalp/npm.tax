@@ -84,6 +84,34 @@ export function formatDays(d: number): string {
   return formatDurationUnit(d / 365, "year");
 }
 
+/**
+ * Parse a value typed into a control's readout. Returns null when the text is
+ * not usable, which callers treat as "leave the current value alone" rather
+ * than as zero — an empty field should not silently mean `min`.
+ */
+export function parseControlValue(
+  raw: string,
+  { min, max }: { min: number; max?: number },
+): number | null {
+  if (raw.trim() === "") return null;
+  // Tolerate grouped input, since the readout itself renders "1,250".
+  const parsed = Number(raw.replace(/[\s,]/g, ""));
+  if (!Number.isFinite(parsed)) return null;
+  const bounded = Math.max(min, Math.round(parsed));
+  return max === undefined ? bounded : Math.min(max, bounded);
+}
+
+/**
+ * Parse a typed daily breach probability into the base-10 exponent the slider
+ * and the URL actually carry. Only (0, 1) is meaningful for a probability.
+ */
+export function parseProbabilityExponent(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const parsed = Number(raw.replace(/[\s,]/g, ""));
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 1) return null;
+  return Math.log10(parsed);
+}
+
 export function formatTimeSliderValue(v: number): string {
   if (v < 60) return `${v}d`;
   if (v < 365) return `${formatQuantity(roundedValue(v / 30, 1), 1)}mo`;

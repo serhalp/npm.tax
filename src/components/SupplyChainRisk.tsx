@@ -13,6 +13,8 @@ import {
   formatTimeSliderValue,
   getRiskScenario,
   MODELED_ROOT_PACKAGE_COUNT,
+  parseControlValue,
+  parseProbabilityExponent,
   type RiskSearch,
 } from "../lib/riskModel";
 import {
@@ -516,10 +518,8 @@ function Slider({
 
   const handleCommit = useCallback(
     (raw: string) => {
-      const parsed = Number(raw.replace(/[\s,]/g, ""));
-      if (!Number.isFinite(parsed)) return;
-      const clamped = Math.max(min, Math.round(parsed));
-      onChange(inputMax === undefined ? clamped : Math.min(inputMax, clamped));
+      const parsed = parseControlValue(raw, { min, max: inputMax });
+      if (parsed !== null) onChange(parsed);
     },
     [min, inputMax, onChange],
   );
@@ -1090,10 +1090,8 @@ export default function SupplyChainRisk() {
 
   const handleProbInput = useCallback(
     (raw: string) => {
-      const v = parseFloat(raw);
-      if (!isNaN(v) && v > 0 && v < 1) {
-        setDailyProbExp(Math.log10(v));
-      }
+      const exponent = parseProbabilityExponent(raw);
+      if (exponent !== null) setDailyProbExp(exponent);
     },
     [setDailyProbExp],
   );
