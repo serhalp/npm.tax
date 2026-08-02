@@ -370,11 +370,9 @@ function FieldLegendItem({
 function PackageField({
   directDeps,
   transitiveDeps,
-  hiddenRisk,
 }: {
   directDeps: number;
   transitiveDeps: number;
-  hiddenRisk: number;
 }) {
   const titleId = useId();
   const field = useMemo(
@@ -393,7 +391,7 @@ function PackageField({
         focusable="false"
       >
         <title id={titleId}>
-          {`Field of ${field.totalPackages.toLocaleString()} marks, one per modeled package: ${selfCount.toLocaleString()} for the package itself, ${directDeps.toLocaleString()} direct dependencies, ${transitiveDeps.toLocaleString()} transitive dependencies.`}
+          {`Visualization of ${field.totalPackages.toLocaleString()} marks, one per modeled package: ${selfCount.toLocaleString()} for the package itself, ${directDeps.toLocaleString()} direct dependencies, ${transitiveDeps.toLocaleString()} transitive dependencies.`}
         </title>
         <path d={field.transitivePath} fill="var(--ink-faint)" />
         <path d={field.directPath} fill="var(--series-b)" />
@@ -411,9 +409,6 @@ function PackageField({
           {field.packagesPerMark > 1 && (
             <>One mark stands for {field.packagesPerMark.toLocaleString()} packages. </>
           )}
-          {transitiveDeps === 0
-            ? "No transitive tree in this scenario."
-            : `${formatProb(hiddenRisk)} additional modeled probability from the transitive tree.`}
         </p>
       </div>
     </div>
@@ -636,7 +631,6 @@ export default function SupplyChainRisk() {
     dailyP,
     totalDeps,
     prob,
-    hiddenRisk,
     expectedDaysToBreach: ettb,
     packageRef,
   } = scenario;
@@ -988,27 +982,15 @@ export default function SupplyChainRisk() {
           </dl>
 
           <div className="mt-8">
-            <PackageField
-              directDeps={directDeps}
-              transitiveDeps={transitiveDeps}
-              hiddenRisk={hiddenRisk}
-            />
+            <PackageField directDeps={directDeps} transitiveDeps={transitiveDeps} />
           </div>
-
-          <p className="mt-8 max-w-3xl text-base leading-7 text-muted">
-            Adjust the parameters to see how they affect overall risk.
-          </p>
 
           <div className="mt-10 border-t border-rule pt-8">
             <section>
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <div className="flex flex-wrap items-baseline justify-start gap-x-4 gap-y-1">
                 <h2 className="statement text-xl text-ink">Cumulative breach probability</h2>
                 <span className={EYEBROW}>{formatDays(timePeriodDays)} horizon</span>
               </div>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-                The full tree is the risk line. The dashed lines show how much direct dependencies
-                alone understate the surface area.
-              </p>
               <div className="mt-6 pr-1">
                 <RiskCurve
                   lines={lines}
