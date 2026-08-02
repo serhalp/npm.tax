@@ -2,7 +2,7 @@ name: 🎬 Dependency Diff (Comment)
 
 on: # zizmor: ignore[dangerous-triggers] -- The whole point of this is that it's secure.
   workflow_run:
-    workflows: ["Dependency Diff (Analyze)"]
+    workflows: ["𝜟 Dependency Diff (Analyze)"]
     types:
       - completed
 
