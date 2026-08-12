@@ -18,7 +18,7 @@ jobs:
           persist-credentials: false
       - name: Analyze dependencies
         id: analyze
-        uses: e18e/action-dependency-diff@8e9b8c1957ab066d36235a43f4c1ff1522e1bdbc # v1.6.1
+        uses: e18e/action-dependency-diff@d3eb8eefcbecc101135419a851cb51e1cdf58508 # v1.7.0
         with:
           mode: artifact
           # Too noisy. Will enable if it ever supports reporting *changes* in duplicates.
