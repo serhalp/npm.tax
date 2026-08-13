@@ -23,7 +23,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Post comment
-        uses: e18e/action-dependency-diff@d3eb8eefcbecc101135419a851cb51e1cdf58508 # v1.7.0
+        uses: e18e/action-dependency-diff@9a7f09f5f2993256322e0db17ee4c8d9339dab77 # v1.7.1
         with:
           mode: comment-from-artifact
           artifact-path: e18e-diff-result.json
