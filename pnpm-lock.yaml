@@ -261,7 +261,7 @@ importers:
         version: 6.1.1(vite@8.2.2(@types/node@26.5.0)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       knip:
         specifier: ^6.31.0
-        version: 6.35.0
+        version: 6.35.1
       oxfmt:
         specifier: ^0.65.0
         version: 0.65.0
@@ -3447,8 +3447,8 @@ packages:
     resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
     engines: {node: '>=18'}
 
-  knip@6.35.0:
-    resolution: {integrity: sha512-eER1hSyi47lJTO9MTnEoJspEscPaVuFtFkHsGbuCmhjDlphzvg2xxcweNg1NCeylo9ERSkb/NzAo7sAcT9gLmA==}
+  knip@6.35.1:
+    resolution: {integrity: sha512-22wnEnv4do2fvoeJsxpFCG/MBxReNxoCVBccaCl7suUJsG+F0UvxI9ycxZ9YgtLHSSjrZl5tOas0JZ/R1vJ93g==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -4809,8 +4809,8 @@ packages:
     resolution: {integrity: sha512-dSvYKdvLsAHCDqPOhIwk/q5CvuWtTB3Dgpoe0uVEFjTzIOAmsQpprX25InCvrvJsirEbu1OHyy67n/kAj1Sw/w==}
     engines: {node: '>=18'}
 
-  zod@4.5.4:
-    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
+  zod@4.6.1:
+    resolution: {integrity: sha512-341aRWQsve0rvronKNTqZpjmzdbUDlFuzHaI/XLg/Ej82qffDJRRfBTCuv7+9q/rMjB6LSLyEBnW4InJeMtt/Q==}
 
 snapshots:
 
@@ -5257,7 +5257,7 @@ snapshots:
       validate-npm-package-name: 5.0.1
       yaml: 2.9.0
       yargs: 17.7.3
-      zod: 4.5.4
+      zod: 4.6.1
 
   '@netlify/database-dev@1.0.0':
     dependencies:
@@ -5570,7 +5570,7 @@ snapshots:
       unixify: 1.0.0
       urlpattern-polyfill: 8.0.2
       yargs: 17.7.3
-      zod: 4.5.4
+      zod: 4.6.1
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -6294,7 +6294,7 @@ snapshots:
       jiti: 2.7.0
       magic-string: 0.30.21
       prettier: 3.9.6
-      zod: 4.5.4
+      zod: 4.6.1
     transitivePeerDependencies:
       - supports-color
 
@@ -6308,7 +6308,7 @@ snapshots:
       '@tanstack/router-utils': 1.162.2(supports-color@7.2.0)
       chokidar: 5.0.0
       unplugin: 3.3.0(esbuild@0.28.1)(rolldown@1.2.6)(rollup@4.61.1)(vite@8.2.2(@types/node@26.5.0)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
-      zod: 4.5.4
+      zod: 4.6.1
     optionalDependencies:
       '@tanstack/react-router': 1.170.33(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       vite: 8.2.2(@types/node@26.5.0)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
@@ -6366,7 +6366,7 @@ snapshots:
       ufo: 1.6.4
       vitefu: 1.1.3(vite@8.2.2(@types/node@26.5.0)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       xmlbuilder2: 4.0.3
-      zod: 4.5.4
+      zod: 4.6.1
     optionalDependencies:
       vite: 8.2.2(@types/node@26.5.0)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
     transitivePeerDependencies:
@@ -7852,7 +7852,7 @@ snapshots:
 
   jwt-decode@4.0.0: {}
 
-  knip@6.35.0:
+  knip@6.35.1:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.7)
       formatly: 0.7.0
@@ -7866,7 +7866,7 @@ snapshots:
       tinyglobby: 0.2.17
       unbash: 4.0.11
       yaml: 2.9.0
-      zod: 4.5.4
+      zod: 4.6.1
 
   kuler@2.0.0: {}
 
@@ -9282,4 +9282,4 @@ snapshots:
       normalize-path: 3.0.0
       readable-stream: 4.7.0
 
-  zod@4.5.4: {}
+  zod@4.6.1: {}
