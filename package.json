@@ -20,7 +20,7 @@
   "dependencies": {
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/react-start": "^1.168.34",
-    "@vercel/og": "^0.11.1",
+    "@vercel/og": "^1.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "semver": "^7.8.5",
