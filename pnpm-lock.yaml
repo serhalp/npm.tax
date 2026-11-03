@@ -183,7 +183,7 @@ importers:
         version: 19.3.1(react@19.3.1)
       semver:
         specifier: ^7.8.5
-        version: 7.8.5
+        version: 7.8.6
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -4138,8 +4138,8 @@ packages:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
 
-  semver@7.8.5:
-    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
+  semver@7.8.6:
+    resolution: {integrity: sha512-9lpSSU4Mly3mrtruwLs1eLK6+gzbzqeBFwRNjIjE+9LuDpWdYctrQlQ3ej1Ilgi7gknpsTRnPoLP8DpCHqHIJw==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -4883,7 +4883,7 @@ snapshots:
     dependencies:
       empathic: 2.0.1
       module-replacements: 3.1.0
-      semver: 7.8.5
+      semver: 7.8.6
     optionalDependencies:
       oxlint: 1.78.0
 
@@ -5136,7 +5136,7 @@ snapshots:
       https-proxy-agent: 7.0.6(supports-color@7.2.0)
       node-fetch: 2.7.0
       nopt: 8.1.0
-      semver: 7.8.5
+      semver: 7.8.6
       tar: 7.5.22
     transitivePeerDependencies:
       - encoding
@@ -5217,7 +5217,7 @@ snapshots:
       empathic: 2.0.1
       env-paths: 3.0.0
       parse-gitignore: 2.0.0
-      semver: 7.8.5
+      semver: 7.8.6
 
   '@netlify/dev@5.0.2(@parcel/watcher@2.5.6)(rollup@4.61.1)(srvx@1.0.5)(supports-color@7.2.0)':
     dependencies:
@@ -5277,7 +5277,7 @@ snapshots:
       node-stream-zip: 1.16.0
       p-retry: 6.2.1
       parse-imports: 2.2.1
-      semver: 7.8.5
+      semver: 7.8.6
       tar: 7.5.22
       tmp-promise: 3.0.3
       urlpattern-polyfill: 8.0.2
@@ -5310,7 +5310,7 @@ snapshots:
       jwt-decode: 4.0.0
       lambda-local: 2.2.0
       read-package-up: 12.0.0
-      semver: 7.8.5
+      semver: 7.8.6
       source-map-support: 0.5.21
     transitivePeerDependencies:
       - bare-abort-controller
@@ -5505,7 +5505,7 @@ snapshots:
       precinct: 12.3.2(supports-color@7.2.0)
       require-package-name: 2.0.1
       resolve: 2.0.0-next.7
-      semver: 7.8.5
+      semver: 7.8.6
       tmp-promise: 3.0.3
       toml: 3.0.0
       unixify: 1.0.0
@@ -6390,7 +6390,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.68.0
       debug: 4.4.3(supports-color@7.2.0)
       minimatch: 10.2.6
-      semver: 7.8.5
+      semver: 7.8.6
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -7760,7 +7760,7 @@ snapshots:
       lodash.isstring: 4.0.1
       lodash.once: 4.1.1
       ms: 2.1.3
-      semver: 7.8.5
+      semver: 7.8.6
 
   junk@4.0.1: {}
 
@@ -8078,13 +8078,13 @@ snapshots:
   normalize-package-data@6.0.2:
     dependencies:
       hosted-git-info: 7.0.2
-      semver: 7.8.5
+      semver: 7.8.6
       validate-npm-package-license: 3.0.4
 
   normalize-package-data@8.0.0:
     dependencies:
       hosted-git-info: 9.0.3
-      semver: 7.8.5
+      semver: 7.8.6
       validate-npm-package-license: 3.0.4
 
   normalize-path@2.1.1:
@@ -8592,7 +8592,7 @@ snapshots:
 
   semver@6.3.1: {}
 
-  semver@7.8.5: {}
+  semver@7.8.6: {}
 
   seroval-plugins@1.6.8(seroval@1.6.8):
     dependencies:
@@ -8626,7 +8626,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
-      semver: 7.8.5
+      semver: 7.8.6
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5
