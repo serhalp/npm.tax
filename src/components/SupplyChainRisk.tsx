@@ -1,4 +1,12 @@
-import { useState, useMemo, useCallback, useEffect, useRef, useId } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  useId,
+  useSyncExternalStore,
+} from "react";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 
 import type { PackageDepsResult } from "../server/packageDeps";
@@ -575,32 +583,56 @@ function applyTheme(theme: Theme): boolean {
   return state.isDark;
 }
 
+// The stored theme is an external store. Reading it during render would mismatch
+// the server render, and syncing it from an effect would cascade a second render.
+let themeSnapshot: Theme | undefined;
+const themeListeners = new Set<() => void>();
+
+function readStoredTheme(): Theme {
+  try {
+    return coerceTheme(localStorage.getItem(THEME_STORAGE_KEY));
+  } catch {
+    return "system";
+  }
+}
+
+function getThemeSnapshot(): Theme {
+  themeSnapshot ??= readStoredTheme();
+  return themeSnapshot;
+}
+
+function getServerThemeSnapshot(): Theme {
+  return "system";
+}
+
+function subscribeToTheme(listener: () => void): () => void {
+  themeListeners.add(listener);
+  return () => {
+    themeListeners.delete(listener);
+  };
+}
+
+function storeTheme(next: Theme) {
+  themeSnapshot = next;
+  for (const listener of themeListeners) listener();
+}
+
 /**
  * Colour-mode state. Defaults to following the operating system and remembers any
  * explicit choice in local storage. The inline script in __root.tsx applies the
  * stored value before render to avoid a flash.
  */
 function useTheme() {
-  const [theme, setThemeState] = useState<Theme>("system");
-
-  useEffect(() => {
-    let initial: Theme = "system";
-    try {
-      initial = coerceTheme(localStorage.getItem(THEME_STORAGE_KEY));
-    } catch {
-      // Ignore storage access errors (e.g. privacy mode).
-    }
-    setThemeState(initial);
-  }, []);
+  const theme = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getServerThemeSnapshot);
 
   const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
     applyTheme(next);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
       // Ignore. Selection simply won't persist.
     }
+    storeTheme(next);
   }, []);
 
   // While following the system, react to OS preference changes live.
@@ -1311,7 +1343,7 @@ export default function SupplyChainRisk() {
             <button
               type="button"
               onClick={handleCopyLink}
-              aria-label={copied ? "Report link copied" : "Copy report link"}
+              aria-label={copied ? "Report link copied" : "Copy link to this report"}
               className="eyebrow inline-flex h-11 items-center justify-center gap-2 border border-rule-strong px-3 text-ink transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:h-10"
             >
               {copied ? (

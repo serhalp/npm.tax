@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { AxeBuilder } from "@axe-core/playwright";
 
 async function expectNoAccessibilityViolations(page: Page) {
   await expect(page.getByRole("heading", { name: "Tune the model" })).toBeVisible();

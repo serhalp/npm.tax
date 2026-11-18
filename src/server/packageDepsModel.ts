@@ -1,4 +1,4 @@
-import { valid } from "semver";
+import { isValid } from "verkit";
 
 // Result of looking up a real npm package's dependency footprint.
 export interface PackageDepsResult {
@@ -44,7 +44,7 @@ export function isValidPackageName(name: string): boolean {
 }
 
 export function isPinnedPackageVersion(version: string | undefined): boolean {
-  return typeof version === "string" && valid(version) !== null;
+  return typeof version === "string" && isValid(version);
 }
 
 export function getPackageDepsCacheRequestUrl(name: string, version?: string): string {
