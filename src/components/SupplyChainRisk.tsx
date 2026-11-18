@@ -1343,7 +1343,7 @@ export default function SupplyChainRisk() {
             <button
               type="button"
               onClick={handleCopyLink}
-              aria-label={copied ? "Report link copied" : "Copy report link"}
+              aria-label={copied ? "Report link copied" : "Copy link to this report"}
               className="eyebrow inline-flex h-11 items-center justify-center gap-2 border border-rule-strong px-3 text-ink transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:h-10"
             >
               {copied ? (
